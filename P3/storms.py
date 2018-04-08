@@ -24,7 +24,7 @@ def gen_rows(rowsNumber, columnsNumber, rowsDescription):
     result = ""
     for i in range(0, rowsNumber):
         result += row(i, columnsNumber, rowsDescription[i])
-        result += ","
+        result += ",\n"
     return result
     
 def column(index, rowsNumber, columnSum):
@@ -43,17 +43,30 @@ def gen_columns(rowsNumber, columnsNumber, columnsDescription):
     result = ""
     for j in range(0, columnsNumber):
         result += column(j, rowsNumber, columnsDescription[j])
-        result += ","
+        result += ",\n"
     return result
 
-def rectangles():
-    return
+def rects3x1(n, m): # this cares that rects are at least 2x2
+    result = ""
+    for i in range(0, n):
+        for j in range(1, m - 1):
+            result = result + "(" + V(i, j) + " #= 1) #==> (" + V(i, j - 1) + " + " + V(i, j + 1) + " #> 0),\n"
+    
+    result += "\n"
+    for j in range(0, m):
+        for i in range(1, n - 1):
+            result = result + "(" + V(i, j) + " #= 1) #==> (" + V(i - 1, j) + " + " + V(i + 1, j) + " #> 0),\n"
 
-def atleast2x2():
-    return
+    return result
 
-def notConnectedWithCorners():
-    return
+def rectangles(n, m): # cares that all areas are rects and not connected by corners
+    result = ""
+    for i in range(0, n - 1):
+        for j in range(0, m - 1):
+            result = result + V(i, j) + " + " + V(i, j + 1) + " + " + \
+            V(i + 1, j) + " + " + V(i + 1, j + 1) + " #\\= 3,\n"
+
+    return result
 
 def print_constraints(Cs, indent, d):
     position = indent
@@ -93,6 +106,8 @@ def generate(input):
     constraints = domains(variables)
     rowsStr = gen_rows(rowsNumber, columnsNumber, rows)
     columnsStr = gen_columns(rowsNumber, columnsNumber, columns)
+    rectanglesStr = rectangles(rowsNumber, columnsNumber)
+    rects3v1Str = rects3x1(rowsNumber, columnsNumber)
 
     file.write(':- use_module(library(clpfd)).')
     file.write('\n')
@@ -105,6 +120,10 @@ def generate(input):
     file.write(rowsStr)
     file.write('\n')
     file.write(columnsStr)
+    file.write('\n')
+    file.write(rectanglesStr)
+    file.write('\n')
+    file.write(rects3v1Str)
 
     file.write('\n')
     file.write('    labeling([ff], [' +  ', '.join(variables) + ']).') 
