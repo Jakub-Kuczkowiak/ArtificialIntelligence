@@ -211,7 +211,10 @@ void countDistance(int i, int j) {
 vector<Position> Goals;
 
 // admissible, therefore gives optimal solution
-int heuro(const State& state) {
+// Zad6: set k to at least 3 to pass all test cases.
+// Zad7: Use sum to pass all tests or k = 10
+int heuro(const State& state, int k = 15)
+{
 	// for each comando, find the closest goal point
 	int max = 0;
 	for (auto& point : state.pointsPosition) {
@@ -225,7 +228,7 @@ int heuro(const State& state) {
 			max = min;
 	}
 
-	return state.n + max;
+	return state.n + max + k * state.pointsPosition.size();
 }
 
 // not admissible, but very fast
@@ -434,8 +437,10 @@ void printState(State state) {
 
 int main() {
 	ifstream file;
-	file.open("zad_input.txt");
+	file.open("tests4.txt");
 
+	bool bEnd = false;
+BEGIN:
 	int testNumber = 1;
 	while (!file.eof()) {
 		dp.clear();
@@ -488,6 +493,14 @@ int main() {
 		backTrackPos(lastState);
 		cout << endl;
 	}
+
+	file.close();
+	file.open("tests5.txt");
+
+	if (bEnd) goto END;
+	bEnd = true;
+	goto BEGIN;
+	END:
 
 	system("PAUSE");
 
