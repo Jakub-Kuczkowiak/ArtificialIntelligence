@@ -3,21 +3,21 @@
 #include <vector>
 #include <time.h>
 #include <tuple>
+#include <queue>
+#include "solver.h"
 
 #pragma warning(disable: 4996) // to be able to use strtok
 
 using namespace std;
 
-int n, m;
+//int n, m;
 
 typedef tuple<int, int, int> Change;
 
-//enum Field {
-//	UNKNOWN,
-//	NOT_DETERMINED,
-//	SET,
-//	UNSET
-//};
+enum ChangeType {
+	ROW,
+	COLUMN
+};
 
 vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int rowId, int elem, int index);
 vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int columnId, int elem, int index);
@@ -39,7 +39,7 @@ bool deduceRow(vector< vector<int> >& rows, vector< vector<int> >& columns, vect
 	}
 
 	for (int i = 0; i < mask.size(); i++) {
-		if (mask[i] != -1) {
+		if (mask[i] != -1 && picture[rowId][i] == -1) {
 			Change change;
 			std::get<0>(change) = rowId;
 			std::get<1>(change) = i;
@@ -68,7 +68,7 @@ bool deduceColumn(vector< vector<int> >& rows, vector< vector<int> >& columns, v
 	}
 
 	for (int i = 0; i < mask.size(); i++) {
-		if (mask[i] != -1) {
+		if (mask[i] != -1 && picture[i][columnId] == -1) {
 			Change change;
 			std::get<0>(change) = i;
 			std::get<1>(change) = columnId;
@@ -85,7 +85,7 @@ vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vect
 	int elemSize = rows[rowId][elem];
 	int elemNumber = rows[rowId].size();
 
-	for (int i = index; i <= m - elemSize; i++) {
+	for (int i = index; i <= columns.size() - elemSize; i++) {
 		// check if we can place block of ones starting at index 'i'.
 		if (i > 0 && picture[rowId][i - 1] == 1) break; // if previous is 1, we can't start placing here and after
 
@@ -102,7 +102,7 @@ vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vect
 		// is it the last element?
 		if (elem == elemNumber - 1) { // base case
 			// we must check if all fields are zeros
-			for (int j = i + elemSize; j < m; j++) {
+			for (int j = i + elemSize; j < columns.size(); j++) {
 				if (picture[rowId][j] == 1) {
 					canPlace = false;
 					break;
@@ -117,14 +117,14 @@ vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vect
 					v.push_back(1);
 
 				// fill the rest with 0s
-				for (int j = i + elemSize; j < m; j++)
+				for (int j = i + elemSize; j < columns.size(); j++)
 					v.push_back(0);
 
 				result.push_back(v);
 			}
 		}
 		else { // if not the last element: induction step
-			if (i + elemSize >= m || picture[rowId][i + elemSize] == 1) canPlace = false;
+			if (i + elemSize >= columns.size() || picture[rowId][i + elemSize] == 1) canPlace = false;
 
 			if (canPlace) {
 				vector<int> v = vector<int>(i - index, 0); // fill the preblock
@@ -153,7 +153,7 @@ vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, v
 	int elemSize = columns[columnId][elem];
 	int elemNumber = columns[columnId].size();
 
-	for (int i = index; i <= n - elemSize; i++) {
+	for (int i = index; i <= rows.size() - elemSize; i++) {
 		// check if we can place block of ones starting at index 'i'.
 		if (i > 0 && picture[i - 1][columnId] == 1) break; // if previous is 1, we can't start placing here and after
 
@@ -170,7 +170,7 @@ vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, v
 		// is it the last element?
 		if (elem == elemNumber - 1) { // base case
 									  // we must check if all fields are zeros
-			for (int j = i + elemSize; j < n; j++) {
+			for (int j = i + elemSize; j < rows.size(); j++) {
 				if (picture[j][columnId] == 1) {
 					canPlace = false;
 					break;
@@ -180,19 +180,19 @@ vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, v
 			if (canPlace) {
 				vector<int> v = vector<int>(i - index, 0); // fill the preblock
 
-														   // fill our block with 1s
+				// fill our block with 1s
 				for (int j = 0; j < elemSize; j++)
 					v.push_back(1);
 
 				// fill the rest with 0s
-				for (int j = i + elemSize; j < n; j++)
+				for (int j = i + elemSize; j < rows.size(); j++)
 					v.push_back(0);
 
 				result.push_back(v);
 			}
 		}
 		else { // if not the last element: induction step
-			if (i + elemSize >= n || picture[i + elemSize][columnId] == 1) canPlace = false;
+			if (i + elemSize >= rows.size() || picture[i + elemSize][columnId] == 1) canPlace = false;
 
 			if (canPlace) {
 				vector<int> v = vector<int>(i - index, 0); // fill the preblock
@@ -228,44 +228,66 @@ void rollbackChanges(vector< vector<int> >& picture, vector<Change>& changes) {
 	}
 }
 
-bool deduce(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, vector<Change>& changes) {
-	bool isConflict = false;
-	for (int i = 0; i < rows.size(); i++) {
-		if (!deduceRow(rows, columns, picture, i, changes)) {
-			return false;
+typedef pair<ChangeType, int> DeduceRequest;
+
+bool deduce(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, vector<Change>& changes, queue<DeduceRequest> q) {
+	while (!q.empty())
+	{
+		DeduceRequest request = q.front();
+		q.pop();
+
+		vector<Change> localChanges;
+		if (request.first == ROW) {
+			if (!deduceRow(rows, columns, picture, request.second, localChanges)) {
+				return false;
+			}
+
+			for (Change change : localChanges) {
+				DeduceRequest req = DeduceRequest(COLUMN, std::get<1>(change));
+				q.push(req);
+			}
 		}
-	}
+		else {
+			if (!deduceColumn(rows, columns, picture, request.second, localChanges)) {
+				return false;
+			}
 
-	applyChanges(picture, changes); // in the 2nd version we will need to rollback changes!
-
-	for (int j = 0; j < columns.size(); j++) {
-		if (!deduceColumn(rows, columns, picture, j, changes)) {
-			return false;
+			for (Change change : localChanges) {
+				DeduceRequest req = DeduceRequest(ROW, std::get<0>(change));
+				q.push(req);
+			}
 		}
-	}
 
-	applyChanges(picture, changes);
+		applyChanges(picture, localChanges);
+		changes.insert(changes.end(), localChanges.begin(), localChanges.end());
+	}
 
 	return true;
 }
 
-
 void solve(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture) {
+	queue<DeduceRequest> q;
+	for (int i = 0; i < rows.size(); i++)
+		q.push(DeduceRequest(ROW, i));
+
+	for (int j = 0; j < columns.size(); j++)
+		q.push(DeduceRequest(COLUMN, j));
+
 	vector<Change> changes;
-	if (deduce(rows, columns, picture, changes)) {
-		//applyChanges(picture, changes);
+	if (!deduce(rows, columns, picture, changes, q)) {
+		rollbackChanges(picture, changes);
 	}
 }
 
-bool isRowCorrect(vector< vector<int> >& rows, int rowIndex, vector< vector<int> >& picture) {
+bool isRowCorrect(vector< vector<int> >& rows, vector< vector<int> >& columns, int rowIndex, vector< vector<int> >& picture) {
 	vector<int> blocks;
-	for (int i = 0; i < m; i++) {
+	for (int i = 0; i < columns.size(); i++) {
 		if (picture[rowIndex][i] == -1) return false;
 
 		if (picture[rowIndex][i] == 1) {
 			int count = 1;
 			int j;
-			for (j = i + 1; j < m; j++) {
+			for (j = i + 1; j < columns.size(); j++) {
 				if (picture[rowIndex][j] == -1) return false;
 
 				if (picture[rowIndex][j] == 0) {
@@ -283,15 +305,15 @@ bool isRowCorrect(vector< vector<int> >& rows, int rowIndex, vector< vector<int>
 	return (blocks == rows[rowIndex]);
 }
 
-bool isColumnCorrect(vector< vector<int> >& columns, int columnIndex, vector< vector<int> >& picture) {
+bool isColumnCorrect(vector< vector<int> >& rows, vector< vector<int> >& columns, int columnIndex, vector< vector<int> >& picture) {
 	vector<int> blocks;
-	for (int i = 0; i < n; i++) {
+	for (int i = 0; i < rows.size(); i++) {
 		if (picture[i][columnIndex] == -1) return false;
 
 		if (picture[i][columnIndex] == 1) {
 			int count = 1;
 			int j;
-			for (j = i + 1; j < n; j++) {
+			for (j = i + 1; j < rows.size(); j++) {
 				if (picture[j][columnIndex] == -1) return false;
 
 				if (picture[j][columnIndex] == 0) {
@@ -310,13 +332,13 @@ bool isColumnCorrect(vector< vector<int> >& columns, int columnIndex, vector< ve
 }
 
 bool isPictureCorrect(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture) {
-	for (int i = 0; i < n; i++) {
-		if (!isRowCorrect(rows, i, picture))
+	for (int i = 0; i < rows.size(); i++) {
+		if (!isRowCorrect(rows, columns, i, picture))
 			return false;
 	}
 
-	for (int j = 0; j < m; j++) {
-		if (!isColumnCorrect(columns, j, picture))
+	for (int j = 0; j < columns.size(); j++) {
+		if (!isColumnCorrect(rows, columns, j, picture))
 			return false;
 	}
 
@@ -324,11 +346,11 @@ bool isPictureCorrect(vector< vector<int> >& rows, vector< vector<int> >& column
 }
 
 void printPicture(vector< vector<int> > picture) {
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < m; j++) {
+	for (int i = 0; i < picture.size(); i++) {
+		for (int j = 0; j < picture[i].size(); j++) {
 			if (picture[i][j] == 0) cout << ".";
-			else cout << "#";
-			//cout << picture[i][j];
+			else if (picture[i][j] == 1) cout << "#";
+			else cout << "?";
 		}
 
 		cout << endl;
@@ -348,6 +370,7 @@ int main()
 	while (!file.eof()) {
 		clock_t begin = clock();
 
+		int n, m;
 		file >> n >> m;
 
 		vector< vector<int> > rows = vector< vector<int> >(n);
