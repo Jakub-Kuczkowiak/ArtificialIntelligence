@@ -4,23 +4,154 @@
 #include <time.h>
 #include <tuple>
 #include <queue>
-#include "solver.h"
 
 #pragma warning(disable: 4996) // to be able to use strtok
 
 using namespace std;
-
-//int n, m;
-
-typedef tuple<int, int, int> Change;
 
 enum ChangeType {
 	ROW,
 	COLUMN
 };
 
-vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int rowId, int elem, int index);
-vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int columnId, int elem, int index);
+typedef tuple<int, int, int> Change;
+typedef pair<ChangeType, int> DeduceRequest;
+
+vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int rowId, int elem, int index) {
+	vector< vector<int> > result;
+	int elemSize = rows[rowId][elem];
+	int elemNumber = rows[rowId].size();
+
+	for (int i = index; i <= columns.size() - elemSize; i++) {
+		// check if we can place block of ones starting at index 'i'.
+		if (i > 0 && picture[rowId][i - 1] == 1) break; // if previous is 1, we can't start placing here and after
+
+		bool canPlace = true;
+		for (int j = i; j < i + elemSize; j++) {
+			if (picture[rowId][j] == 0) {
+				canPlace = false;
+				break;
+			}
+		}
+
+		if (!canPlace) continue;
+
+		// is it the last element?
+		if (elem == elemNumber - 1) { // base case
+									  // we must check if all fields are zeros
+			for (int j = i + elemSize; j < columns.size(); j++) {
+				if (picture[rowId][j] == 1) {
+					canPlace = false;
+					break;
+				}
+			}
+
+			if (canPlace) {
+				vector<int> v = vector<int>(i - index, 0); // fill the preblock
+
+				// fill our block with 1s
+				for (int j = 0; j < elemSize; j++)
+					v.push_back(1);
+
+				// fill the rest with 0s
+				for (int j = i + elemSize; j < columns.size(); j++)
+					v.push_back(0);
+
+				result.push_back(v);
+			}
+		}
+		else { // if not the last element: induction step
+			if (i + elemSize >= columns.size() || picture[rowId][i + elemSize] == 1) canPlace = false;
+
+			if (canPlace) {
+				vector<int> v = vector<int>(i - index, 0); // fill the preblock
+
+														   // fill our block with 1s
+				for (int j = 0; j < elemSize; j++)
+					v.push_back(1);
+
+				v.push_back(0); // add one zero after block
+
+				vector< vector<int> > lastPossibilities = generateRowPossibilities(rows, columns, picture, rowId, elem + 1, i + elemSize + 1);
+				for (vector<int> possibility : lastPossibilities) {
+					vector<int> r = v;
+					r.insert(r.end(), possibility.begin(), possibility.end());
+					result.push_back(r);
+				}
+			}
+		}
+	}
+
+	return result;
+}
+
+vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int columnId, int elem, int index) {
+	vector< vector<int> > result;
+	int elemSize = columns[columnId][elem];
+	int elemNumber = columns[columnId].size();
+
+	for (int i = index; i <= rows.size() - elemSize; i++) {
+		// check if we can place block of ones starting at index 'i'.
+		if (i > 0 && picture[i - 1][columnId] == 1) break; // if previous is 1, we can't start placing here and after
+
+		bool canPlace = true;
+		for (int j = i; j < i + elemSize; j++) {
+			if (picture[j][columnId] == 0) {
+				canPlace = false;
+				break;
+			}
+		}
+
+		if (!canPlace) continue;
+
+		// is it the last element?
+		if (elem == elemNumber - 1) { // base case
+									  // we must check if all fields are zeros
+			for (int j = i + elemSize; j < rows.size(); j++) {
+				if (picture[j][columnId] == 1) {
+					canPlace = false;
+					break;
+				}
+			}
+
+			if (canPlace) {
+				vector<int> v = vector<int>(i - index, 0); // fill the preblock
+
+														   // fill our block with 1s
+				for (int j = 0; j < elemSize; j++)
+					v.push_back(1);
+
+				// fill the rest with 0s
+				for (int j = i + elemSize; j < rows.size(); j++)
+					v.push_back(0);
+
+				result.push_back(v);
+			}
+		}
+		else { // if not the last element: induction step
+			if (i + elemSize >= rows.size() || picture[i + elemSize][columnId] == 1) canPlace = false;
+
+			if (canPlace) {
+				vector<int> v = vector<int>(i - index, 0); // fill the preblock
+
+														   // fill our block with 1s
+				for (int j = 0; j < elemSize; j++)
+					v.push_back(1);
+
+				v.push_back(0); // add one zero after block
+
+				vector< vector<int> > lastPossibilities = generateColumnPossibilities(rows, columns, picture, columnId, elem + 1, i + elemSize + 1);
+				for (vector<int> possibility : lastPossibilities) {
+					vector<int> r = v;
+					r.insert(r.end(), possibility.begin(), possibility.end());
+					result.push_back(r);
+				}
+			}
+		}
+	}
+
+	return result;
+}
 
 bool deduceRow(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int rowId, vector<Change>& changes) {
 	vector< vector<int> > possibilities = generateRowPossibilities(rows, columns, picture, rowId, 0, 0);
@@ -80,142 +211,6 @@ bool deduceColumn(vector< vector<int> >& rows, vector< vector<int> >& columns, v
 	return true;
 }
 
-vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int rowId, int elem, int index) {
-	vector< vector<int> > result;
-	int elemSize = rows[rowId][elem];
-	int elemNumber = rows[rowId].size();
-
-	for (int i = index; i <= columns.size() - elemSize; i++) {
-		// check if we can place block of ones starting at index 'i'.
-		if (i > 0 && picture[rowId][i - 1] == 1) break; // if previous is 1, we can't start placing here and after
-
-		bool canPlace = true;
-		for (int j = i; j < i + elemSize; j++) {
-			if (picture[rowId][j] == 0) {
-				canPlace = false;
-				break;
-			}
-		}
-
-		if (!canPlace) continue;
-
-		// is it the last element?
-		if (elem == elemNumber - 1) { // base case
-			// we must check if all fields are zeros
-			for (int j = i + elemSize; j < columns.size(); j++) {
-				if (picture[rowId][j] == 1) {
-					canPlace = false;
-					break;
-				}
-			}
-
-			if (canPlace) {
-				vector<int> v = vector<int>(i - index, 0); // fill the preblock
-
-				// fill our block with 1s
-				for (int j = 0; j < elemSize; j++)
-					v.push_back(1);
-
-				// fill the rest with 0s
-				for (int j = i + elemSize; j < columns.size(); j++)
-					v.push_back(0);
-
-				result.push_back(v);
-			}
-		}
-		else { // if not the last element: induction step
-			if (i + elemSize >= columns.size() || picture[rowId][i + elemSize] == 1) canPlace = false;
-
-			if (canPlace) {
-				vector<int> v = vector<int>(i - index, 0); // fill the preblock
-
-				// fill our block with 1s
-				for (int j = 0; j < elemSize; j++)
-					v.push_back(1);
-
-				v.push_back(0); // add one zero after block
-
-				vector< vector<int> > lastPossibilities = generateRowPossibilities(rows, columns, picture, rowId, elem + 1, i + elemSize + 1);
-				for (vector<int> possibility : lastPossibilities) {
-					vector<int> r = v;
-					r.insert(r.end(), possibility.begin(), possibility.end());
-					result.push_back(r);
-				}
-			}
-		}
-	}
-
-	return result;
-}
-
-vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int columnId, int elem, int index) {
-	vector< vector<int> > result;
-	int elemSize = columns[columnId][elem];
-	int elemNumber = columns[columnId].size();
-
-	for (int i = index; i <= rows.size() - elemSize; i++) {
-		// check if we can place block of ones starting at index 'i'.
-		if (i > 0 && picture[i - 1][columnId] == 1) break; // if previous is 1, we can't start placing here and after
-
-		bool canPlace = true;
-		for (int j = i; j < i + elemSize; j++) {
-			if (picture[j][columnId] == 0) {
-				canPlace = false;
-				break;
-			}
-		}
-
-		if (!canPlace) continue;
-
-		// is it the last element?
-		if (elem == elemNumber - 1) { // base case
-									  // we must check if all fields are zeros
-			for (int j = i + elemSize; j < rows.size(); j++) {
-				if (picture[j][columnId] == 1) {
-					canPlace = false;
-					break;
-				}
-			}
-
-			if (canPlace) {
-				vector<int> v = vector<int>(i - index, 0); // fill the preblock
-
-				// fill our block with 1s
-				for (int j = 0; j < elemSize; j++)
-					v.push_back(1);
-
-				// fill the rest with 0s
-				for (int j = i + elemSize; j < rows.size(); j++)
-					v.push_back(0);
-
-				result.push_back(v);
-			}
-		}
-		else { // if not the last element: induction step
-			if (i + elemSize >= rows.size() || picture[i + elemSize][columnId] == 1) canPlace = false;
-
-			if (canPlace) {
-				vector<int> v = vector<int>(i - index, 0); // fill the preblock
-
-				// fill our block with 1s
-				for (int j = 0; j < elemSize; j++)
-					v.push_back(1);
-
-				v.push_back(0); // add one zero after block
-
-				vector< vector<int> > lastPossibilities = generateColumnPossibilities(rows, columns, picture, columnId, elem + 1, i + elemSize + 1);
-				for (vector<int> possibility : lastPossibilities) {
-					vector<int> r = v;
-					r.insert(r.end(), possibility.begin(), possibility.end());
-					result.push_back(r);
-				}
-			}
-		}
-	}
-
-	return result;
-}
-
 void applyChanges(vector< vector<int> >& picture, vector<Change>& changes) {
 	for (Change& change : changes) {
 		picture[std::get<0>(change)][std::get<1>(change)] = std::get<2>(change);
@@ -227,8 +222,6 @@ void rollbackChanges(vector< vector<int> >& picture, vector<Change>& changes) {
 		picture[std::get<0>(change)][std::get<1>(change)] = -1;
 	}
 }
-
-typedef pair<ChangeType, int> DeduceRequest;
 
 bool deduce(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, vector<Change>& changes, queue<DeduceRequest> q) {
 	while (!q.empty())
@@ -355,8 +348,6 @@ void printPicture(vector< vector<int> > picture) {
 
 		cout << endl;
 	}
-
-	//cout << endl;
 }
 
 int main()
@@ -375,8 +366,6 @@ int main()
 
 		vector< vector<int> > rows = vector< vector<int> >(n);
 		vector< vector<int> > columns = vector< vector<int> >(m);
-
-		//rows.clear(); columns.clear();
 
 		char line[32];
 		file.getline(line, 32);
@@ -429,18 +418,6 @@ int main()
 				break;
 			}
 		}
-
-		//while (!solve(rows, columns, picture)) {
-		//	for (int i = 0; i < n; i++) {
-		//		for (int j = 0; j < m; j++) {
-		//			picture[i][j] = rand() % 2;
-		//		}
-		//	}
-
-		//	//cout << "new randomized picture" << endl;
-		//};
-
-		//Beep(5000, 2000);
 
 		clock_t end = clock();
 
