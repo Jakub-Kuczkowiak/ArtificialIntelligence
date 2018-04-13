@@ -412,12 +412,12 @@ int main()
 			}
 		}
 
-		while (true) {
+		//while (true) { // one solve is fine for this version!
 			solve(rows, columns, picture);
 			if (isPictureCorrect(rows, columns, picture)) {
-				break;
+				//break;
 			}
-		}
+		//}
 
 		clock_t end = clock();
 
