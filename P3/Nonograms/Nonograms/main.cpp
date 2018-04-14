@@ -4,6 +4,13 @@
 #include <time.h>
 #include <tuple>
 #include <queue>
+#include <unordered_map>
+
+/*
+Futher optimizations that could be done:
+	- Use linked list instead of vector, since in many places we perform concatenating two vectors, which is very slow
+	  and with linked lists can be done in constant time.
+*/
 
 #pragma warning(disable: 4996) // to be able to use strtok
 
@@ -14,8 +21,17 @@ enum ChangeType {
 	COLUMN
 };
 
+struct pairHash : public std::unary_function<pair<int, int>, std::size_t>
+{
+	std::size_t operator()(const pair<int, int>& p) const
+	{
+		return p.first + 10007 * p.second;
+	}
+};
+
 typedef tuple<int, int, int> Change;
 typedef pair<ChangeType, int> DeduceRequest;
+typedef unordered_map<pair<int, int>, vector< vector<int> >, pairHash> Dictionary;
 
 void printPicture(vector< vector<int> > picture) {
 	for (int i = 0; i < picture.size(); i++) {
@@ -29,7 +45,50 @@ void printPicture(vector< vector<int> > picture) {
 	}
 }
 
-vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int rowId, int elem, int index) {
+// prefix[i].first = t[0] + t[1] + ... + t[i - 1] where prefix[i].first counts number of zeros
+// prefix[i].second = t[0] + t[1] + ... + t[i - 1] where prefix[i].second counts number of ones
+pair<vector<int>, vector<int>> prefix_row(vector< vector<int> >& picture, int rowIndex) {
+	pair<vector<int>, vector<int>> prefix = pair<vector<int>, vector<int>>(vector<int>(picture[rowIndex].size() + 1), vector<int>(picture[rowIndex].size() + 1));
+
+	prefix.first[0] = prefix.second[0] = 0;
+
+	for (int i = 1; i <= picture[rowIndex].size(); i++) {
+		prefix.first[i] = prefix.first[i - 1] + (picture[rowIndex][i - 1] == 0 ? 1 : 0);
+		prefix.second[i] = prefix.second[i - 1] + (picture[rowIndex][i - 1] == 1 ? 1 : 0);
+	}
+
+	return prefix;
+}
+
+pair<vector<int>, vector<int>> prefix_column(vector< vector<int> >& picture, int columnIndex) {
+	pair<vector<int>, vector<int>> prefix = pair<vector<int>, vector<int>>(vector<int>(picture.size() + 1), vector<int>(picture.size() + 1));
+
+	prefix.first[0] = prefix.second[0] = 0;
+
+	for (int i = 1; i <= picture.size(); i++) {
+		prefix.first[i] = prefix.first[i - 1] + (picture[i - 1][columnIndex] == 0 ? 1 : 0);
+		prefix.second[i] = prefix.second[i - 1] + (picture[i - 1][columnIndex] == 1 ? 1 : 0);
+	}
+
+	return prefix;
+}
+
+__inline int areZeros(pair<vector<int>, vector<int>>& prefix, int i, int j) // ends of out interval
+{
+	return (prefix.first[j + 1] - prefix.first[i]) > 0;
+}
+
+__inline int areOnes(pair<vector<int>, vector<int>>& prefix, int i, int j) // ends of out interval
+{
+	return (prefix.second[j + 1] - prefix.second[i]) > 0;
+}
+
+vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns,
+	vector< vector<int> >& picture, int rowId, int elem, int index, Dictionary& dp, pair<vector<int>, vector<int>>& prefix) 
+{
+	auto v = dp.find(pair<int, int>(elem, index));
+	if (v != dp.end()) return v->second;
+	
 	vector< vector<int> > result;
 	int elemSize = rows[rowId][elem];
 	int elemNumber = rows[rowId].size();
@@ -38,66 +97,55 @@ vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vect
 		// check if we can place block of ones starting at index 'i'.
 		if (i > 0 && picture[rowId][i - 1] == 1) break; // if previous is 1, we can't start placing here and after
 
-		bool canPlace = true;
-		for (int j = i; j < i + elemSize; j++) {
-			if (picture[rowId][j] == 0) {
-				canPlace = false;
-				break;
-			}
-		}
-
-		if (!canPlace) continue;
+		if (areZeros(prefix, i, i + elemSize - 1)) continue;
 
 		// is it the last element?
 		if (elem == elemNumber - 1) { // base case
-									  // we must check if all fields are zeros
-			for (int j = i + elemSize; j < columns.size(); j++) {
-				if (picture[rowId][j] == 1) {
-					canPlace = false;
-					break;
-				}
-			}
+			// we must check if there are ones in the end
+			if (areOnes(prefix, i + elemSize, columns.size() - 1)) continue;
 
-			if (canPlace) {
-				vector<int> v = vector<int>(i - index, 0); // fill the preblock
+			vector<int> v = vector<int>(i - index, 0); // fill the preblock
 
-														   // fill our block with 1s
-				for (int j = 0; j < elemSize; j++)
-					v.push_back(1);
+			// fill our block with 1s
+			for (int j = 0; j < elemSize; j++)
+				v.push_back(1);
 
-				// fill the rest with 0s
-				for (int j = i + elemSize; j < columns.size(); j++)
-					v.push_back(0);
+			// fill the rest with 0s
+			for (int j = i + elemSize; j < columns.size(); j++)
+				v.push_back(0);
 
-				result.push_back(v);
-			}
+			result.push_back(v);
 		}
 		else { // if not the last element: induction step
-			if (i + elemSize >= columns.size() || picture[rowId][i + elemSize] == 1) canPlace = false;
+			if (i + elemSize >= columns.size() || picture[rowId][i + elemSize] == 1) continue;
 
-			if (canPlace) {
-				vector<int> v = vector<int>(i - index, 0); // fill the preblock
+			vector<int> v = vector<int>(i - index, 0); // fill the preblock
 
-				// fill our block with 1s
-				for (int j = 0; j < elemSize; j++)
-					v.push_back(1);
+			// fill our block with 1s
+			for (int j = 0; j < elemSize; j++)
+				v.push_back(1);
 
-				v.push_back(0); // add one zero after block
+			v.push_back(0); // add one zero after block
 
-				vector< vector<int> > lastPossibilities = generateRowPossibilities(rows, columns, picture, rowId, elem + 1, i + elemSize + 1);
-				for (vector<int> possibility : lastPossibilities) {
-					vector<int> r = v;
-					r.insert(r.end(), possibility.begin(), possibility.end());
-					result.push_back(r);
-				}
+			vector< vector<int> > lastPossibilities = generateRowPossibilities(rows, columns, picture, rowId, elem + 1, i + elemSize + 1, dp, prefix);
+			for (vector<int> possibility : lastPossibilities) {
+				vector<int> r = v;
+				r.insert(r.end(), possibility.begin(), possibility.end());
+				result.push_back(r);
 			}
 		}
 	}
 
+	dp[pair<int, int>(elem, index)] = result;
 	return result;
 }
 
-vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int columnId, int elem, int index) {
+vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns,
+	vector< vector<int> >& picture, int columnId, int elem, int index, Dictionary& dp, pair<vector<int>, vector<int>>& prefix) 
+{
+	auto v = dp.find(pair<int, int>(elem, index));
+	if (v != dp.end()) return v->second;
+
 	vector< vector<int> > result;
 	int elemSize = columns[columnId][elem];
 	int elemNumber = columns[columnId].size();
@@ -106,67 +154,53 @@ vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, v
 		// check if we can place block of ones starting at index 'i'.
 		if (i > 0 && picture[i - 1][columnId] == 1) break; // if previous is 1, we can't start placing here and after
 
-		bool canPlace = true;
-		for (int j = i; j < i + elemSize; j++) {
-			if (picture[j][columnId] == 0) {
-				canPlace = false;
-				break;
-			}
-		}
-
-		if (!canPlace) continue;
+		if (areZeros(prefix, i, i + elemSize - 1)) continue;
 
 		// is it the last element?
 		if (elem == elemNumber - 1) { // base case
-									  // we must check if all fields are zeros
-			for (int j = i + elemSize; j < rows.size(); j++) {
-				if (picture[j][columnId] == 1) {
-					canPlace = false;
-					break;
-				}
-			}
+			// we must check if there are ones in the end
+			if (areOnes(prefix, i + elemSize, rows.size() - 1)) continue;
 
-			if (canPlace) {
-				vector<int> v = vector<int>(i - index, 0); // fill the preblock
+			vector<int> v = vector<int>(i - index, 0); // fill the preblock
 
-				// fill our block with 1s
-				for (int j = 0; j < elemSize; j++)
-					v.push_back(1);
+			// fill our block with 1s
+			for (int j = 0; j < elemSize; j++)
+				v.push_back(1);
 
-				// fill the rest with 0s
-				for (int j = i + elemSize; j < rows.size(); j++)
-					v.push_back(0);
+			// fill the rest with 0s
+			for (int j = i + elemSize; j < rows.size(); j++)
+				v.push_back(0);
 
-				result.push_back(v);
-			}
+			result.push_back(v);
 		}
 		else { // if not the last element: induction step
-			if (i + elemSize >= rows.size() || picture[i + elemSize][columnId] == 1) canPlace = false;
+			if (i + elemSize >= rows.size() || picture[i + elemSize][columnId] == 1) continue;
 
-			if (canPlace) {
-				vector<int> v = vector<int>(i - index, 0); // fill the preblock
+			vector<int> v = vector<int>(i - index, 0); // fill the preblock
 
-														   // fill our block with 1s
-				for (int j = 0; j < elemSize; j++)
-					v.push_back(1);
+			// fill our block with 1s
+			for (int j = 0; j < elemSize; j++)
+				v.push_back(1);
 
-				v.push_back(0); // add one zero after block
+			v.push_back(0); // add one zero after block
 
-				vector< vector<int> > lastPossibilities = generateColumnPossibilities(rows, columns, picture, columnId, elem + 1, i + elemSize + 1);
-				for (vector<int> possibility : lastPossibilities) {
-					vector<int> r = v;
-					r.insert(r.end(), possibility.begin(), possibility.end());
-					result.push_back(r);
-				}
+			vector< vector<int> > lastPossibilities = generateColumnPossibilities(rows, columns, picture, columnId, elem + 1, i + elemSize + 1, dp, prefix);
+			for (vector<int> possibility : lastPossibilities) {
+				vector<int> r = v;
+				r.insert(r.end(), possibility.begin(), possibility.end());
+				result.push_back(r);
 			}
 		}
 	}
 
+	dp[pair<int, int>(elem, index)] = result;
 	return result;
 }
 
 bool deduceRow(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int rowId, vector<Change>& changes) {
-	vector< vector<int> > possibilities = generateRowPossibilities(rows, columns, picture, rowId, 0, 0);
+	Dictionary dp;
+	pair<vector<int>, vector<int>> prefix = prefix_row(picture, rowId);
+	vector< vector<int> > possibilities = generateRowPossibilities(rows, columns, picture, rowId, 0, 0, dp, prefix);
 	if (possibilities.empty()) return false; // couldn't deduce due to some previous backtracking
 
 	vector<int> mask = possibilities[0];
@@ -195,7 +229,9 @@ bool deduceRow(vector< vector<int> >& rows, vector< vector<int> >& columns, vect
 }
 
 bool deduceColumn(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int columnId, vector<Change>& changes) {
-	vector< vector<int> > possibilities = generateColumnPossibilities(rows, columns, picture, columnId, 0, 0);
+	Dictionary dp;
+	pair<vector<int>, vector<int>> prefix = prefix_column(picture, columnId);
+	vector< vector<int> > possibilities = generateColumnPossibilities(rows, columns, picture, columnId, 0, 0, dp, prefix);
 	if (possibilities.empty()) return false; // couldn't deduce due to some previous backtracking
 
 	vector<int> mask = possibilities[0];
@@ -402,8 +438,6 @@ bool isPictureCorrect(vector< vector<int> >& rows, vector< vector<int> >& column
 
 int main()
 {
-	srand(time(NULL));
-
 	ifstream file;
 	file.open("tests.txt");
 
@@ -463,9 +497,6 @@ int main()
 		}
 
 		solve(rows, columns, picture);
-		/*if (isPictureCorrect(rows, columns, picture)) {
-			break;
-		}*/
 
 		clock_t end = clock();
 
