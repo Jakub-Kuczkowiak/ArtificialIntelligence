@@ -17,6 +17,18 @@ enum ChangeType {
 typedef tuple<int, int, int> Change;
 typedef pair<ChangeType, int> DeduceRequest;
 
+void printPicture(vector< vector<int> > picture) {
+	for (int i = 0; i < picture.size(); i++) {
+		for (int j = 0; j < picture[i].size(); j++) {
+			if (picture[i][j] == 0) cout << ".";
+			else if (picture[i][j] == 1) cout << "#";
+			else cout << "?";
+		}
+
+		cout << endl;
+	}
+}
+
 vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int rowId, int elem, int index) {
 	vector< vector<int> > result;
 	int elemSize = rows[rowId][elem];
@@ -66,7 +78,7 @@ vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vect
 			if (canPlace) {
 				vector<int> v = vector<int>(i - index, 0); // fill the preblock
 
-														   // fill our block with 1s
+				// fill our block with 1s
 				for (int j = 0; j < elemSize; j++)
 					v.push_back(1);
 
@@ -117,7 +129,7 @@ vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, v
 			if (canPlace) {
 				vector<int> v = vector<int>(i - index, 0); // fill the preblock
 
-														   // fill our block with 1s
+				// fill our block with 1s
 				for (int j = 0; j < elemSize; j++)
 					v.push_back(1);
 
@@ -258,7 +270,54 @@ bool deduce(vector< vector<int> >& rows, vector< vector<int> >& columns, vector<
 	return true;
 }
 
-void solve(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture) {
+bool backtrack(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int i, int j) {
+	if (i == rows.size() - 1 && j == columns.size() - 1) return true;
+
+	int nextI = i, nextJ = j + 1;
+	if (j == columns.size() - 1) { // we check here if it is the end of row
+		nextI = i + 1;
+		nextJ = 0;
+	}
+
+	if (picture[i][j] == -1) {
+		// first case, we try to set to 0
+		picture[i][j] = 0;
+
+		queue<DeduceRequest> q;
+		vector<Change> changes;
+		q.push(DeduceRequest(ROW, i));
+		q.push(DeduceRequest(COLUMN, j));
+
+		if (deduce(rows, columns, picture, changes, q) && backtrack(rows, columns, picture, nextI, nextJ)) {
+			return true;
+		}
+
+		rollbackChanges(picture, changes);
+
+		// queue remains the same because is not given by reference to function
+		changes.clear();
+
+		// second case, we try to set to 1
+		picture[i][j] = 1;
+		if (deduce(rows, columns, picture, changes, q) && backtrack(rows, columns, picture, nextI, nextJ)) {
+			return true;
+		}
+
+		rollbackChanges(picture, changes);
+		picture[i][j] = -1;
+		return false;
+
+		static int call = 0;
+		if (call++ % 10000 == 0)
+			printPicture(picture);
+	}
+	else
+	{
+		return backtrack(rows, columns, picture, nextI, nextJ);
+	}
+}
+
+bool solve(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture) {
 	queue<DeduceRequest> q;
 	for (int i = 0; i < rows.size(); i++)
 		q.push(DeduceRequest(ROW, i));
@@ -269,7 +328,10 @@ void solve(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< 
 	vector<Change> changes;
 	if (!deduce(rows, columns, picture, changes, q)) {
 		rollbackChanges(picture, changes);
+		return false;
 	}
+
+	return backtrack(rows, columns, picture, 0, 0);
 }
 
 bool isRowCorrect(vector< vector<int> >& rows, vector< vector<int> >& columns, int rowIndex, vector< vector<int> >& picture) {
@@ -336,18 +398,6 @@ bool isPictureCorrect(vector< vector<int> >& rows, vector< vector<int> >& column
 	}
 
 	return true;
-}
-
-void printPicture(vector< vector<int> > picture) {
-	for (int i = 0; i < picture.size(); i++) {
-		for (int j = 0; j < picture[i].size(); j++) {
-			if (picture[i][j] == 0) cout << ".";
-			else if (picture[i][j] == 1) cout << "#";
-			else cout << "?";
-		}
-
-		cout << endl;
-	}
 }
 
 int main()
