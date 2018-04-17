@@ -342,10 +342,6 @@ bool backtrack(vector< vector<int> >& rows, vector< vector<int> >& columns, vect
 		rollbackChanges(picture, changes);
 		picture[i][j] = -1;
 		return false;
-
-		static int call = 0;
-		if (call++ % 10000 == 0)
-			printPicture(picture);
 	}
 	else
 	{
@@ -439,7 +435,7 @@ bool isPictureCorrect(vector< vector<int> >& rows, vector< vector<int> >& column
 int main()
 {
 	ifstream file;
-	file.open("tests.txt");
+	file.open("mytests.txt");
 
 	double sumTime = 0;
 	while (!file.eof()) {
@@ -496,7 +492,10 @@ int main()
 			}
 		}
 
-		solve(rows, columns, picture);
+		if (!solve(rows, columns, picture)) {
+			cout << "incorrect picture description" << endl;
+			continue;
+		}
 
 		clock_t end = clock();
 
