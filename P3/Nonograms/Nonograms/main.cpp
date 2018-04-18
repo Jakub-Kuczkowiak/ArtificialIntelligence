@@ -291,6 +291,7 @@ bool deduce(vector< vector<int> >& rows, vector< vector<int> >& columns, vector<
 		else {
 			if (!deduceColumn(rows, columns, picture, request.second, localChanges)) {
 				return false;
+
 			}
 
 			for (Change change : localChanges) {
@@ -301,6 +302,13 @@ bool deduce(vector< vector<int> >& rows, vector< vector<int> >& columns, vector<
 
 		applyChanges(picture, localChanges);
 		changes.insert(changes.end(), localChanges.begin(), localChanges.end());
+	}
+
+	static long long count = 0;
+	count++;
+	if (count % 1000 == 0) {
+		printPicture(picture);
+		cout << endl;
 	}
 
 	return true;
@@ -316,30 +324,68 @@ bool backtrack(vector< vector<int> >& rows, vector< vector<int> >& columns, vect
 	}
 
 	if (picture[i][j] == -1) {
-		// first case, we try to set to 0
-		picture[i][j] = 0;
-
 		queue<DeduceRequest> q;
-		vector<Change> changes;
 		q.push(DeduceRequest(ROW, i));
 		q.push(DeduceRequest(COLUMN, j));
 
-		if (deduce(rows, columns, picture, changes, q) && backtrack(rows, columns, picture, nextI, nextJ)) {
-			return true;
-		}
+		vector<Change> zeroChanges;
+		picture[i][j] = 0;
+		bool zeroDeduce = deduce(rows, columns, picture, zeroChanges, q);
+		rollbackChanges(picture, zeroChanges);
 
-		rollbackChanges(picture, changes);
-
-		// queue remains the same because is not given by reference to function
-		changes.clear();
-
-		// second case, we try to set to 1
+		vector<Change> oneChanges;
 		picture[i][j] = 1;
-		if (deduce(rows, columns, picture, changes, q) && backtrack(rows, columns, picture, nextI, nextJ)) {
-			return true;
+		bool oneDeduce = deduce(rows, columns, picture, oneChanges, q);
+
+		if (!zeroDeduce && !oneDeduce) { // both placements were incorrect
+			rollbackChanges(picture, oneChanges);
+		}
+		else if (!zeroDeduce) { // only putting one has given optimistic result
+			if (backtrack(rows, columns, picture, nextI, nextJ))
+				return true;
+
+			rollbackChanges(picture, oneChanges);
+		}
+		else if (!oneDeduce) { // only putting zero has given optimistic result
+			rollbackChanges(picture, oneChanges);
+			applyChanges(picture, zeroChanges);
+			picture[i][j] = 0;
+			if (backtrack(rows, columns, picture, nextI, nextJ))
+				return true;
+
+			rollbackChanges(picture, zeroChanges);
+		}
+		else { // both placements have given optimistic result
+			// we don't cut any solutions but we prefer to backtrack more optimistic case first
+			if (oneChanges.size() >= zeroChanges.size()) { 
+				if (backtrack(rows, columns, picture, nextI, nextJ))
+					return true;
+
+				rollbackChanges(picture, oneChanges);
+				applyChanges(picture, zeroChanges);
+				picture[i][j] = 0;
+				if (backtrack(rows, columns, picture, nextI, nextJ))
+					return true;
+
+				rollbackChanges(picture, zeroChanges);
+			}
+			else {
+				rollbackChanges(picture, oneChanges);
+				applyChanges(picture, zeroChanges);
+				picture[i][j] = 0;
+				if (backtrack(rows, columns, picture, nextI, nextJ))
+					return true;
+
+				rollbackChanges(picture, zeroChanges);
+				applyChanges(picture, oneChanges);
+				picture[i][j] = 1;
+				if (backtrack(rows, columns, picture, nextI, nextJ))
+					return true;
+
+				rollbackChanges(picture, oneChanges);
+			}
 		}
 
-		rollbackChanges(picture, changes);
 		picture[i][j] = -1;
 		return false;
 	}
@@ -435,7 +481,7 @@ bool isPictureCorrect(vector< vector<int> >& rows, vector< vector<int> >& column
 int main()
 {
 	ifstream file;
-	file.open("mytests.txt");
+	file.open("tests.txt");
 
 	double sumTime = 0;
 	while (!file.eof()) {
