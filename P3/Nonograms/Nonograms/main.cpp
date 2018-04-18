@@ -10,6 +10,8 @@
 Futher optimizations that could be done:
 	- Use linked list instead of vector, since in many places we perform concatenating two vectors, which is very slow
 	  and with linked lists can be done in constant time.
+	- Use prority queue when doing backtracking at (i, j). Motivation for it is that some fields are more complex and
+	  therefore lead to faster success/failure.
 */
 
 #pragma warning(disable: 4996) // to be able to use strtok
@@ -304,12 +306,13 @@ bool deduce(vector< vector<int> >& rows, vector< vector<int> >& columns, vector<
 		changes.insert(changes.end(), localChanges.begin(), localChanges.end());
 	}
 
-	static long long count = 0;
+	// Use it to see progress.
+	/*static long long count = 0;
 	count++;
 	if (count % 1000 == 0) {
 		printPicture(picture);
 		cout << endl;
-	}
+	}*/
 
 	return true;
 }
