@@ -8,8 +8,6 @@
 
 /*
 Futher optimizations that could be done:
-	- Use linked list instead of vector, since in many places we perform concatenating two vectors, which is very slow
-	  and with linked lists can be done in constant time.
 	- Use prority queue when doing backtracking at (i, j). Motivation for it is that some fields are more complex and
 	  therefore lead to faster success/failure.
 */
@@ -33,7 +31,7 @@ struct pairHash : public std::unary_function<pair<int, int>, std::size_t>
 
 typedef tuple<int, int, int> Change;
 typedef pair<ChangeType, int> DeduceRequest;
-typedef unordered_map<pair<int, int>, vector< vector<int> >, pairHash> Dictionary;
+typedef unordered_map<pair<int, int>, bool, pairHash> Dictionary;
 
 void printPicture(vector< vector<int> > picture) {
 	for (int i = 0; i < picture.size(); i++) {
@@ -85,13 +83,18 @@ __inline int areOnes(pair<vector<int>, vector<int>>& prefix, int i, int j) // en
 	return (prefix.second[j + 1] - prefix.second[i]) > 0;
 }
 
-vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns,
-	vector< vector<int> >& picture, int rowId, int elem, int index, Dictionary& dp, pair<vector<int>, vector<int>>& prefix) 
+// generatePossibilitiesMask Invariant:
+// if it is possible to generate at least possibility at state [elem, index], it sets dp[elem, index] = true and
+// build proper mask for all [elem, index] and also sets single mask for singular prefix;
+// otherwise it sets dp[elem, index] = false
+// time complexity: O(elemMax * index * rowSize) <= O(size * size * size) = O(size^3).
+bool generateRowPossibilitiesMask(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture,
+	int rowId, int elem, int index, Dictionary& dp, pair<vector<int>, vector<int>>& prefix, pair<vector<int>, vector<int>>& mask)
 {
 	auto v = dp.find(pair<int, int>(elem, index));
 	if (v != dp.end()) return v->second;
-	
-	vector< vector<int> > result;
+
+	bool result = false;
 	int elemSize = rows[rowId][elem];
 	int elemNumber = rows[rowId].size();
 
@@ -106,35 +109,35 @@ vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vect
 			// we must check if there are ones in the end
 			if (areOnes(prefix, i + elemSize, columns.size() - 1)) continue;
 
-			vector<int> v = vector<int>(i - index, 0); // fill the preblock
+			for (int j = index; j < i; j++) // mark preblock as zeros
+				mask.first[j] = 1;
 
-			// fill our block with 1s
-			for (int j = 0; j < elemSize; j++)
-				v.push_back(1);
+			for (int j = i; j < i + elemSize; j++) // mark middle of mask for suffix as ones
+				mask.second[j] = 1;
 
-			// fill the rest with 0s
-			for (int j = i + elemSize; j < columns.size(); j++)
-				v.push_back(0);
+			for (int j = i + elemSize; j < columns.size(); j++) // mark rest with zeros possible
+				mask.first[j] = 1;
 
-			result.push_back(v);
+			dp[pair<int, int>(elem, index)] = true;
+			result = true;
 		}
 		else { // if not the last element: induction step
 			if (i + elemSize >= columns.size() || picture[rowId][i + elemSize] == 1) continue;
 
-			vector<int> v = vector<int>(i - index, 0); // fill the preblock
+			// check if we can generate at least one possibility for suffix starting at i + elemSize + 1 and if positive
+			// mark the rest of mask starting at i + elemSize + 1 (due to induction hypothesis)
+			if (!generateRowPossibilitiesMask(rows, columns, picture, rowId, elem + 1, i + elemSize + 1, dp, prefix, mask)) continue;
 
-			// fill our block with 1s
-			for (int j = 0; j < elemSize; j++)
-				v.push_back(1);
+			for (int j = index; j < i; j++) // fill the prefix of mask with zeros
+				mask.first[j] = 1;
 
-			v.push_back(0); // add one zero after block
+			for (int j = i; j < i + elemSize; j++) // mark middle of mask for suffix as ones
+				mask.second[j] = 1;
 
-			vector< vector<int> > lastPossibilities = generateRowPossibilities(rows, columns, picture, rowId, elem + 1, i + elemSize + 1, dp, prefix);
-			for (vector<int> possibility : lastPossibilities) {
-				vector<int> r = v;
-				r.insert(r.end(), possibility.begin(), possibility.end());
-				result.push_back(r);
-			}
+			mask.first[i + elemSize] = 1; // mark zero after block
+
+			dp[pair<int, int>(elem, index)] = true;
+			result = true;
 		}
 	}
 
@@ -142,13 +145,13 @@ vector< vector<int> > generateRowPossibilities(vector< vector<int> >& rows, vect
 	return result;
 }
 
-vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, vector< vector<int> >& columns,
-	vector< vector<int> >& picture, int columnId, int elem, int index, Dictionary& dp, pair<vector<int>, vector<int>>& prefix) 
+bool generateColumnPossibilitiesMask(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture,
+	int columnId, int elem, int index, Dictionary& dp, pair<vector<int>, vector<int>>& prefix, pair<vector<int>, vector<int>>& mask) 
 {
 	auto v = dp.find(pair<int, int>(elem, index));
 	if (v != dp.end()) return v->second;
 
-	vector< vector<int> > result;
+	bool result = false;
 	int elemSize = columns[columnId][elem];
 	int elemNumber = columns[columnId].size();
 
@@ -163,35 +166,35 @@ vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, v
 			// we must check if there are ones in the end
 			if (areOnes(prefix, i + elemSize, rows.size() - 1)) continue;
 
-			vector<int> v = vector<int>(i - index, 0); // fill the preblock
+			for (int j = index; j < i; j++) // mark preblock as zeros
+				mask.first[j] = 1;
 
-			// fill our block with 1s
-			for (int j = 0; j < elemSize; j++)
-				v.push_back(1);
+			for (int j = i; j < i + elemSize; j++) // mark middle of mask for suffix as ones
+				mask.second[j] = 1;
 
-			// fill the rest with 0s
-			for (int j = i + elemSize; j < rows.size(); j++)
-				v.push_back(0);
+			for (int j = i + elemSize; j < rows.size(); j++) // mark rest with zeros possible
+				mask.first[j] = 1;
 
-			result.push_back(v);
+			dp[pair<int, int>(elem, index)] = true;
+			result = true;
 		}
 		else { // if not the last element: induction step
 			if (i + elemSize >= rows.size() || picture[i + elemSize][columnId] == 1) continue;
 
-			vector<int> v = vector<int>(i - index, 0); // fill the preblock
+			// check if we can generate at least one possibility for suffix starting at i + elemSize + 1
+			// mark the rest of mask starting at i + elemSize + 1 (due to induction hypothesis)
+			if (!generateColumnPossibilitiesMask(rows, columns, picture, columnId, elem + 1, i + elemSize + 1, dp, prefix, mask)) continue;
 
-			// fill our block with 1s
-			for (int j = 0; j < elemSize; j++)
-				v.push_back(1);
+			for (int j = index; j < i; j++) // fill the prefix of mask with zeros
+				mask.first[j] = 1;
 
-			v.push_back(0); // add one zero after block
+			for (int j = i; j < i + elemSize; j++) // mark middle of mask for suffix as ones
+				mask.second[j] = 1;
 
-			vector< vector<int> > lastPossibilities = generateColumnPossibilities(rows, columns, picture, columnId, elem + 1, i + elemSize + 1, dp, prefix);
-			for (vector<int> possibility : lastPossibilities) {
-				vector<int> r = v;
-				r.insert(r.end(), possibility.begin(), possibility.end());
-				result.push_back(r);
-			}
+			mask.first[i + elemSize] = 1; // mark zero after block
+
+			result = true;
+			dp[pair<int, int>(elem, index)] = true;
 		}
 	}
 
@@ -202,28 +205,27 @@ vector< vector<int> > generateColumnPossibilities(vector< vector<int> >& rows, v
 bool deduceRow(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int rowId, vector<Change>& changes) {
 	Dictionary dp;
 	pair<vector<int>, vector<int>> prefix = prefix_row(picture, rowId);
-	vector< vector<int> > possibilities = generateRowPossibilities(rows, columns, picture, rowId, 0, 0, dp, prefix);
-	if (possibilities.empty()) return false; // couldn't deduce due to some previous backtracking
+	pair<vector<int>, vector<int>> mask = pair<vector<int>, vector<int>>(vector<int>(columns.size()), vector<int>(columns.size()));
+	if (!generateRowPossibilitiesMask(rows, columns, picture, rowId, 0, 0, dp, prefix, mask))
+		return false; // couldn't deduce due to some previous backtracking
 
-	vector<int> mask = possibilities[0];
-
-	// we build mask
-	for (auto& possibility : possibilities) {
-		for (int i = 0; i < possibility.size(); i++) {
-			if (mask[i] != -1) {
-				if (mask[i] == !possibility[i])
-					mask[i] = -1;
+	// explore mask
+	for (int i = 0; i < mask.first.size(); i++) {
+		if (picture[rowId][i] == -1) {
+			if (mask.first[i] == 1 && mask.second[i] == 0) {
+				Change change;
+				std::get<0>(change) = rowId;
+				std::get<1>(change) = i;
+				std::get<2>(change) = 0;
+				changes.push_back(change);
 			}
-		}
-	}
-
-	for (int i = 0; i < mask.size(); i++) {
-		if (mask[i] != -1 && picture[rowId][i] == -1) {
-			Change change;
-			std::get<0>(change) = rowId;
-			std::get<1>(change) = i;
-			std::get<2>(change) = mask[i];
-			changes.push_back(change);
+			else if (mask.first[i] == 0 && mask.second[i] == 1) {
+				Change change;
+				std::get<0>(change) = rowId;
+				std::get<1>(change) = i;
+				std::get<2>(change) = 1;
+				changes.push_back(change);
+			}
 		}
 	}
 
@@ -233,28 +235,27 @@ bool deduceRow(vector< vector<int> >& rows, vector< vector<int> >& columns, vect
 bool deduceColumn(vector< vector<int> >& rows, vector< vector<int> >& columns, vector< vector<int> >& picture, int columnId, vector<Change>& changes) {
 	Dictionary dp;
 	pair<vector<int>, vector<int>> prefix = prefix_column(picture, columnId);
-	vector< vector<int> > possibilities = generateColumnPossibilities(rows, columns, picture, columnId, 0, 0, dp, prefix);
-	if (possibilities.empty()) return false; // couldn't deduce due to some previous backtracking
+	pair<vector<int>, vector<int>> mask = pair<vector<int>, vector<int>>(vector<int>(rows.size()), vector<int>(rows.size()));
+	if (!generateColumnPossibilitiesMask(rows, columns, picture, columnId, 0, 0, dp, prefix, mask))
+		return false; // couldn't deduce due to some previous backtracking
 
-	vector<int> mask = possibilities[0];
-
-	// we build mask
-	for (auto& possibility : possibilities) {
-		for (int i = 0; i < possibility.size(); i++) {
-			if (mask[i] != -1) {
-				if (mask[i] == !possibility[i])
-					mask[i] = -1;
+	// explore mask
+	for (int i = 0; i < mask.first.size(); i++) {
+		if (picture[i][columnId] == -1) {
+			if (mask.first[i] == 1 && mask.second[i] == 0) {
+				Change change;
+				std::get<0>(change) = i;
+				std::get<1>(change) = columnId;
+				std::get<2>(change) = 0;
+				changes.push_back(change);
 			}
-		}
-	}
-
-	for (int i = 0; i < mask.size(); i++) {
-		if (mask[i] != -1 && picture[i][columnId] == -1) {
-			Change change;
-			std::get<0>(change) = i;
-			std::get<1>(change) = columnId;
-			std::get<2>(change) = mask[i];
-			changes.push_back(change);
+			else if (mask.first[i] == 0 && mask.second[i] == 1) {
+				Change change;
+				std::get<0>(change) = i;
+				std::get<1>(change) = columnId;
+				std::get<2>(change) = 1;
+				changes.push_back(change);
+			}
 		}
 	}
 
@@ -309,7 +310,7 @@ bool deduce(vector< vector<int> >& rows, vector< vector<int> >& columns, vector<
 	// Use it to see progress.
 	/*static long long count = 0;
 	count++;
-	if (count % 1000 == 0) {
+	if (count % 10000 == 0) {
 		printPicture(picture);
 		cout << endl;
 	}*/
