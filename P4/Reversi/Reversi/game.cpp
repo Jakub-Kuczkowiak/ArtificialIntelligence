@@ -93,7 +93,7 @@ bool Game::isWinner(Color col) {
 	//throw "not implemented";
 }
 
-vector<pair<State, Move>> Game::getAvailableStates(State state) {
+vector<pair<State, Move>> Game::getAvailableStates(State& state) {
 	vector<pair<State, Move>> result;
 	Board& b = state.first;
 	Color myColor = state.second;
@@ -217,7 +217,6 @@ vector<pair<State, Move>> Game::getAvailableStates(State state) {
 
 				newJ++;
 			}
-			temp.clear();
 
 			if (figuresToChange.empty()) continue;
 			figuresToChange.push_back(Position(i, j));
@@ -237,6 +236,56 @@ vector<pair<State, Move>> Game::getAvailableStates(State state) {
 	}
 
 	return result;
+}
+
+void Game::setPlayers(IPlayer& whitePlayer, IPlayer& blackPlayer) {
+	this->whitePlayer = &whitePlayer;
+	this->blackPlayer = &blackPlayer;
+}
+
+bool Game::isCorrectState(State& state) {
+	auto states = getAvailableStates(boardState);
+	for (auto& st : states)
+		if (st.first == state)
+			return true;
+
+	return false;
+}
+
+void Game::play(bool verifyMoves) {
+	while (true)
+	{
+		State state;
+		do
+		{
+			state = blackPlayer->bestMove(boardState);
+			if (isCorrectState(state)) break;
+			cout << "Black played incorrect move!" << endl;
+		} while (true);
+
+		boardState = state;
+		printBoard();
+
+		if (isWinner(COL_BLACK)) {
+			cout << "BLACK WINNER";
+			break;
+		}
+
+		do
+		{
+			state = whitePlayer->bestMove(boardState);
+			if (isCorrectState(state)) break;
+			cout << "White played incorrect move!" << endl;
+		} while (true);
+
+		boardState = state;
+		printBoard();
+
+		if (isWinner(COL_WHITE)) {
+			cout << "WHITE WINNER";
+			break;
+		}
+	}
 }
 
 void Game::printBoard() {
