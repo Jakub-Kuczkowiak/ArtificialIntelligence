@@ -1,72 +1,15 @@
-#include "game.h"
-#include <vector>
-#include <iostream>
-#include <string>
+#include "randombot.h"
 #include <list>
-#include <algorithm>
 
-using namespace std;
-
-Game::Game()
+State RandomBot::bestMove(State& state)
 {
-	boardState.first = vector< vector<Field> >(WIDTH);
-
-	for (int i = 0; i < WIDTH; i++) {
-		boardState.first[i] = vector<Field>(HEIGHT);
-		for (int j = 0; j < HEIGHT; j++) {
-			boardState.first[i][j] = EMPTY;
-		}
-	}
-
-	boardState.first[3][3] = boardState.first[4][4] = Field::WHITE;
-	boardState.first[3][4] = boardState.first[4][3] = Field::BLACK;
-
-	boardState.second = COL_BLACK;
+	auto states = getAvailableStates(state);
+	int randomNum = uniform_int_distribution<>(0, states.size() - 1)(eng);
+	
+	return states[randomNum].first;
 }
 
-Game::~Game()
-{
-}
-
-string Game::getMoveFromPlayer() {
-	cout << "Move: ";
-	string move;
-	cin >> move;
-
-	return move;
-}
-
-bool Game::isWinner(Color colorToMove) {
-	int countWhite = 0, countBlack = 0;
-	bool isAnyEmpty = false;
-	for (int i = 0; i < WIDTH; i++) {
-		for (int j = 0; j < HEIGHT; j++) {
-			if (boardState.first[i][j] == Field::WHITE)
-				countWhite++;
-			else if (boardState.first[i][j] == Field::BLACK)
-				countBlack++;
-		}
-	}
-
-	// check if any figures of each
-	if (countWhite == 0 || countBlack == 0) return true;
-
-	// check if full board
-	if (countWhite + countBlack == WIDTH * HEIGHT) return true;
-
-	// can anyone move?
-	if (getAvailableStates(boardState).size() == 0) {
-		boardState.second = boardState.second == COL_WHITE ? COL_BLACK : COL_WHITE;
-		if (getAvailableStates(boardState).size() == 0) {
-			return true;
-		}
-		boardState.second = boardState.second == COL_WHITE ? COL_BLACK : COL_WHITE;
-	}
-
-	return false;
-}
-
-vector<pair<State, Move>> Game::getAvailableStates(State& state) {
+vector<pair<State, Move>> RandomBot::getAvailableStates(State& state) {
 	vector<pair<State, Move>> result;
 	Board& b = state.first;
 	Color myColor = state.second;
@@ -209,77 +152,4 @@ vector<pair<State, Move>> Game::getAvailableStates(State& state) {
 	}
 
 	return result;
-}
-
-void Game::setPlayers(IPlayer& whitePlayer, IPlayer& blackPlayer) {
-	this->whitePlayer = &whitePlayer;
-	this->blackPlayer = &blackPlayer;
-}
-
-bool Game::isCorrectState(State& state) {
-	auto states = getAvailableStates(boardState);
-	for (auto& st : states)
-		if (st.first == state)
-			return true;
-
-	return false;
-}
-
-void Game::play(bool verifyMoves) {
-	while (true)
-	{
-		State state;
-		do
-		{
-			state = blackPlayer->bestMove(boardState);
-			if (!verifyMoves) break;
-			if (isCorrectState(state)) break;
-			cout << "Black played incorrect move!" << endl;
-		} while (true);
-
-		boardState = state;
-		printBoard();
-
-		if (isWinner(COL_BLACK)) {
-			cout << "BLACK WINNER";
-			break;
-		}
-
-		do
-		{
-			state = whitePlayer->bestMove(boardState);
-			if (!verifyMoves) break;
-			if (isCorrectState(state)) break;
-			cout << "White played incorrect move!" << endl;
-		} while (true);
-
-		boardState = state;
-		printBoard();
-
-		if (isWinner(COL_WHITE)) {
-			cout << "WHITE WINNER";
-			break;
-		}
-	}
-}
-
-void Game::printBoard() {
-	cout << endl;
-
-	for (int i = 0; i < WIDTH; i++) {
-		cout << WIDTH - i;
-		for (int j = 0; j < HEIGHT; j++) {
-			cout << (char)boardState.first[i][j];
-		}
-
-		cout << endl;
-	}
-
-	char begin = 'A';
-	cout << " ";
-	for (int i = 0; i < HEIGHT; i++) {
-		cout << (char)(begin + i);
-	}
-
-	cout << endl;
 }

@@ -10,7 +10,7 @@ Player::Player(Color color) {
 State Player::getMoveState(State& state, int i, int j) {
 	Board& b = state.first;
 	Color myColor = state.second;
-	Color enemyColor = (myColor == Field::WHITE) ? COL_BLACK : COL_WHITE;
+	Color enemyColor = (myColor == COL_WHITE) ? COL_BLACK : COL_WHITE;
 
 	Field myField = (myColor == COL_WHITE) ? Field::WHITE : Field::BLACK;
 	Field enemyField = (myColor == COL_WHITE) ? Field::BLACK : Field::WHITE;
