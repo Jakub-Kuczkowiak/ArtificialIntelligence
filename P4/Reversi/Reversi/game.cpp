@@ -20,6 +20,8 @@ Game::Game()
 
 	boardState.first[3][3] = boardState.first[4][4] = Field::WHITE;
 	boardState.first[3][4] = boardState.first[4][3] = Field::BLACK;
+
+	boardState.second = COL_BLACK;
 }
 
 Game::~Game()
@@ -34,8 +36,13 @@ string Game::getMoveFromPlayer() {
 	return move;
 }
 
-void Game::getWhiteMove() {
+void Game::playWhiteMove() {
 	vector<pair<State, Move>> states = getAvailableStates(boardState);
+	cout << "Moves: ";
+	for (auto& s : states) {
+		cout << s.second << " ";
+	}
+	cout << endl;
 
 	string move = "";
 	bool bFound = false;
@@ -43,31 +50,47 @@ void Game::getWhiteMove() {
 		move = getMoveFromPlayer();
 		for (auto& s : states) {
 			if (s.second == move) {
+				boardState = s.first;
 				bFound = true;
 				break;
 			}
 		}
+		move = "";
+
+		if (bFound) break;
+		cout << "Invalid move for white." << endl;
 	}
 }
 
-void Game::getBlackMove() {
+void Game::playBlackMove() {
 	vector<pair<State, Move>> states = getAvailableStates(boardState);
+	cout << "Moves: ";
+	for (auto& s : states) {
+		cout << s.second << " ";
+	}
+	cout << endl;
 
 	string move = "";
 	bool bFound = false;
-	while (move == "" && !bFound) {
+	while (move == "") {
 		move = getMoveFromPlayer();
 		for (auto& s : states) {
 			if (s.second == move) {
+				boardState = s.first;
 				bFound = true;
 				break;
 			}
 		}
-	}
+		move = "";
+
+		if (bFound) break;
+		cout << "Invalid move for black." << endl;
+	}	
 }
 
 bool Game::isWinner(Color col) {
-	throw "not implemented";
+	return false;
+	//throw "not implemented";
 }
 
 vector<pair<State, Move>> Game::getAvailableStates(State state) {
@@ -197,6 +220,7 @@ vector<pair<State, Move>> Game::getAvailableStates(State state) {
 			temp.clear();
 
 			if (figuresToChange.empty()) continue;
+			figuresToChange.push_back(Position(i, j));
 
 			State newState = state;
 			newState.second = enemyColor;

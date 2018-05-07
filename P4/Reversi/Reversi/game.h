@@ -29,8 +29,8 @@ public:
 	~Game();
 
 	void printBoard();
-	void getBlackMove();
-	void getWhiteMove();
+	void playWhiteMove();
+	void playBlackMove();
 	bool isWinner(Color col);
 	string getMoveFromPlayer();
 

@@ -20,13 +20,17 @@ int main() {
 
 	while (true)
 	{
-		game.getBlackMove();
+		game.playBlackMove();
+		game.printBoard();
+
 		if (game.isWinner(COL_BLACK)) {
 			cout << "BLACK WINNER";
 			break;
 		}
 
-		game.getWhiteMove();
+		game.playWhiteMove();
+		game.printBoard();
+
 		if (game.isWinner(COL_WHITE)) {
 			cout << "WHITE WINNER";
 			break;
