@@ -36,7 +36,8 @@ string Game::getMoveFromPlayer() {
 	return move;
 }
 
-bool Game::isWinner(Color colorToMove) {
+// (end, Color) = is it end and who won?
+pair<bool, Color> Game::isWinner(Color colorToMove) {
 	int countWhite = 0, countBlack = 0;
 	bool isAnyEmpty = false;
 	for (int i = 0; i < WIDTH; i++) {
@@ -49,21 +50,25 @@ bool Game::isWinner(Color colorToMove) {
 	}
 
 	// check if any figures of each
-	if (countWhite == 0 || countBlack == 0) return true;
+	if (countWhite == 0) return pair<bool, Color>(true, COL_BLACK);
+	if (countBlack == 0) return pair<bool, Color>(true, COL_WHITE);
 
 	// check if full board
-	if (countWhite + countBlack == WIDTH * HEIGHT) return true;
+	if (countWhite + countBlack == WIDTH * HEIGHT) {
+		if (countWhite >= countBlack) return pair<bool, Color>(true, COL_WHITE);
+		else return pair<bool, Color>(true, COL_BLACK);
+	}
 
 	// can anyone move?
 	if (getAvailableStates(boardState).size() == 0) {
 		boardState.second = boardState.second == COL_WHITE ? COL_BLACK : COL_WHITE;
 		if (getAvailableStates(boardState).size() == 0) {
-			return true;
+			return pair<bool, Color>(true, (colorToMove == COL_WHITE) ? COL_BLACK : COL_WHITE);
 		}
 		boardState.second = boardState.second == COL_WHITE ? COL_BLACK : COL_WHITE;
 	}
 
-	return false;
+	return pair<bool, Color>(false, COL_WHITE);
 }
 
 vector<pair<State, Move>> Game::getAvailableStates(State& state) {
@@ -229,36 +234,48 @@ void Game::play(bool verifyMoves) {
 	while (true)
 	{
 		State state;
-		do
-		{
-			state = blackPlayer->bestMove(boardState);
-			if (!verifyMoves) break;
-			if (isCorrectState(state)) break;
-			cout << "Black played incorrect move!" << endl;
-		} while (true);
+		if (getAvailableStates(boardState).size() > 0) {
+			do
+			{
+				state = blackPlayer->bestMove(boardState);
+				if (!verifyMoves) break;
+				if (isCorrectState(state)) break;
+				cout << "Black played incorrect move!" << endl;
+			} while (true);
 
-		boardState = state;
-		printBoard();
+			boardState = state;
+			printBoard();
 
-		if (isWinner(COL_BLACK)) {
-			cout << "BLACK WINNER";
-			break;
+			auto endState = isWinner(COL_WHITE);
+			if (endState.first) {
+				cout << "***" << ((endState.second == COL_WHITE) ? "WHITE" : "BLACK") << " WINNER***" << endl;
+				break;
+			}
+		}
+		else {
+			boardState.second = COL_WHITE;
 		}
 
-		do
-		{
-			state = whitePlayer->bestMove(boardState);
-			if (!verifyMoves) break;
-			if (isCorrectState(state)) break;
-			cout << "White played incorrect move!" << endl;
-		} while (true);
+		if (getAvailableStates(boardState).size() > 0) {
+			do
+			{
+				state = whitePlayer->bestMove(boardState);
+				if (!verifyMoves) break;
+				if (isCorrectState(state)) break;
+				cout << "White played incorrect move!" << endl;
+			} while (true);
 
-		boardState = state;
-		printBoard();
+			boardState = state;
+			printBoard();
 
-		if (isWinner(COL_WHITE)) {
-			cout << "WHITE WINNER";
-			break;
+			auto endState = isWinner(COL_BLACK);
+			if (endState.first) {
+				cout << "***" << ((endState.second == COL_WHITE) ? "WHITE" : "BLACK") << " WINNER***" << endl;
+				break;
+			}
+		}
+		else {
+			boardState.second = COL_BLACK;
 		}
 	}
 }

@@ -37,7 +37,7 @@ public:
 
 	void setPlayers(IPlayer& whitePlayer, IPlayer& blackPlayer);
 	void printBoard();
-	bool isWinner(Color colorToMove);
+	pair<bool, Color> isWinner(Color colorToMove);
 	string getMoveFromPlayer();
 	bool isCorrectState(State& state);
 
