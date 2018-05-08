@@ -32,8 +32,10 @@ vector<pair<State, Move>> RandomBot::getAvailableStates(State& state) {
 			while (newI >= 0 && newJ >= 0) {
 				if (b[newI][newJ] == enemyField)
 					temp.push_back(Position(newI, newJ));
-				else if (b[newI][newJ] == myField) // to usuwamy wszystkie pionki
+				else if (b[newI][newJ] == myField) { // to usuwamy wszystkie pionki
 					figuresToChange.splice(figuresToChange.end(), temp);
+					break;
+				}
 				else // we break here since its empty field
 					break;
 
@@ -45,8 +47,10 @@ vector<pair<State, Move>> RandomBot::getAvailableStates(State& state) {
 			while (newI < WIDTH && newJ < HEIGHT) {
 				if (b[newI][newJ] == enemyField)
 					temp.push_back(Position(newI, newJ));
-				else if (b[newI][newJ] == myField) // to usuwamy wszystkie pionki
+				else if (b[newI][newJ] == myField) { // to usuwamy wszystkie pionki
 					figuresToChange.splice(figuresToChange.end(), temp);
+					break;
+				}
 				else // we break here since its empty field
 					break;
 
@@ -59,8 +63,10 @@ vector<pair<State, Move>> RandomBot::getAvailableStates(State& state) {
 			while (newI >= 0 && newJ < HEIGHT) {
 				if (b[newI][newJ] == enemyField)
 					temp.push_back(Position(newI, newJ));
-				else if (b[newI][newJ] == myField) // to usuwamy wszystkie pionki
+				else if (b[newI][newJ] == myField) { // to usuwamy wszystkie pionki
 					figuresToChange.splice(figuresToChange.end(), temp);
+					break;
+				}
 				else // we break here since its empty field
 					break;
 
@@ -72,8 +78,10 @@ vector<pair<State, Move>> RandomBot::getAvailableStates(State& state) {
 			while (newI < WIDTH && newJ >= 0) {
 				if (b[newI][newJ] == enemyField)
 					temp.push_back(Position(newI, newJ));
-				else if (b[newI][newJ] == myField) // to usuwamy wszystkie pionki
+				else if (b[newI][newJ] == myField) { // to usuwamy wszystkie pionki
 					figuresToChange.splice(figuresToChange.end(), temp);
+					break;
+				}
 				else // we break here since its empty field
 					break;
 
@@ -86,8 +94,10 @@ vector<pair<State, Move>> RandomBot::getAvailableStates(State& state) {
 			while (newI >= 0) {
 				if (b[newI][newJ] == enemyField)
 					temp.push_back(Position(newI, newJ));
-				else if (b[newI][newJ] == myField) // to usuwamy wszystkie pionki
+				else if (b[newI][newJ] == myField) { // to usuwamy wszystkie pionki
 					figuresToChange.splice(figuresToChange.end(), temp);
+					break;
+				}
 				else // we break here since its empty field
 					break;
 
@@ -99,8 +109,10 @@ vector<pair<State, Move>> RandomBot::getAvailableStates(State& state) {
 			while (newI < WIDTH) {
 				if (b[newI][newJ] == enemyField)
 					temp.push_back(Position(newI, newJ));
-				else if (b[newI][newJ] == myField) // to usuwamy wszystkie pionki
+				else if (b[newI][newJ] == myField) { // to usuwamy wszystkie pionki
 					figuresToChange.splice(figuresToChange.end(), temp);
+					break;
+				}
 				else // we break here since its empty field
 					break;
 
@@ -113,8 +125,10 @@ vector<pair<State, Move>> RandomBot::getAvailableStates(State& state) {
 			while (newJ >= 0) {
 				if (b[newI][newJ] == enemyField)
 					temp.push_back(Position(newI, newJ));
-				else if (b[newI][newJ] == myField) // to usuwamy wszystkie pionki
+				else if (b[newI][newJ] == myField) { // to usuwamy wszystkie pionki
 					figuresToChange.splice(figuresToChange.end(), temp);
+					break;
+				}
 				else // we break here since its empty field
 					break;
 
@@ -126,8 +140,10 @@ vector<pair<State, Move>> RandomBot::getAvailableStates(State& state) {
 			while (newJ < HEIGHT) {
 				if (b[newI][newJ] == enemyField)
 					temp.push_back(Position(newI, newJ));
-				else if (b[newI][newJ] == myField) // to usuwamy wszystkie pionki
+				else if (b[newI][newJ] == myField) { // to usuwamy wszystkie pionki
 					figuresToChange.splice(figuresToChange.end(), temp);
+					break;
+				}
 				else // we break here since its empty field
 					break;
 

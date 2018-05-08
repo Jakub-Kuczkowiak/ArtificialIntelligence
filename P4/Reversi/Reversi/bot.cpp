@@ -1,43 +1,82 @@
-#include "game.h"
-#include <vector>
-#include <iostream>
-#include <string>
+#include "bot.h"
+#include <queue>
 #include <list>
-#include <algorithm>
 
-using namespace std;
+int w[8][8] = {
+	{200, -100, 100,  50,  50, 100, -100,  200},
+	{-100, -200, -50, -50, -50, -50, -200, -100 },
+	{100,  -50, 100,   0,   0, 100,  -50,  100},
+	{50,  -50,   0,   0,   0,   0,  -50,   50 },
+	{50,  -50,   0,   0,   0,   0,  -50,   50},
+	{100,  -50, 100,   0,   0, 100,  -50,  100},
+	{-100, -200, -50, -50, -50, -50, -200, -100},
+	{200, -100, 100,  50,  50, 100, -100,  200} 
+};
 
-Game::Game()
-{
-	boardState.first = vector< vector<Field> >(WIDTH);
+Bot::Bot(Color color) {
+	this->color = color;
 
+	int heuristic = 0;
 	for (int i = 0; i < WIDTH; i++) {
-		boardState.first[i] = vector<Field>(HEIGHT);
 		for (int j = 0; j < HEIGHT; j++) {
-			boardState.first[i][j] = EMPTY;
+			heuristic += abs(w[i][j]);
 		}
 	}
 
-	boardState.first[3][3] = boardState.first[4][4] = Field::WHITE;
-	boardState.first[3][4] = boardState.first[4][3] = Field::BLACK;
-
-	boardState.second = COL_BLACK;
+	maxHeuristric = heuristic;
+	minHeuristic = -maxHeuristric;
 }
 
-Game::~Game()
+State Bot::bestMove(State& state)
 {
+	return (minimax(state, 0, 1).second);
 }
 
-string Game::getMoveFromPlayer() {
-	cout << "Move: ";
-	string move;
-	cin >> move;
+// We want it to be always positive for white and negative for black
+int Bot::heuro(State& state) {
+	Board& board = state.first;
+	// TODO: check if it's a winning or losing state.
 
-	return move;
+	// whites
+	int heuristic = 0;
+	int countWhite = 0, countBlack = 0;
+	for (int i = 0; i < WIDTH; i++) {
+		for (int j = 0; j < HEIGHT; j++) {
+			if (board[i][j] == Field::WHITE) {
+				heuristic += w[i][j];
+				countWhite++;
+			}
+			else if (board[i][j] == Field::BLACK) {
+				heuristic -= w[i][j];
+				countBlack++;
+			}
+		}
+	}
+
+	//if (countBlack == 0) return maxHeuristric;
+	//if (countWhite == 0) return minHeuristic;
+
+	//if (countWhite + countBlack == WIDTH * HEIGHT) {
+	//	if (countWhite >= countBlack) return maxHeuristric;
+	//	else return minHeuristic;
+	//}
+
+	//// can anyone move?
+	//if (getAvailableStates(state).size() == 0) {
+	//	state.second = state.second == COL_WHITE ? COL_BLACK : COL_WHITE;
+	//	if (getAvailableStates(state).size() == 0) {
+	//		if (state.second == COL_BLACK)
+	//			return maxHeuristric;
+	//		else
+	//			return minHeuristic;
+	//	}
+	//	state.second = state.second == COL_WHITE ? COL_BLACK : COL_WHITE;
+	//}
+
+	return heuristic;
 }
 
-// (end, Color) = is it end and who won?
-pair<bool, Color> Game::isWinner(Color colorToMove) {
+pair<bool, Color> Bot::isWinner(State boardState, Color colorToMove) {
 	int countWhite = 0, countBlack = 0;
 	bool isAnyEmpty = false;
 	for (int i = 0; i < WIDTH; i++) {
@@ -71,7 +110,66 @@ pair<bool, Color> Game::isWinner(Color colorToMove) {
 	return pair<bool, Color>(false, COL_WHITE);
 }
 
-vector<pair<State, Move>> Game::getAvailableStates(State& state) {
+pair<int, State> Bot::minimax(State state, int depth, int maxDepth) {
+	// base case: leaf, when game is finished
+	auto isWin = isWinner(state, state.second);
+	if (isWin.first) {
+		if (isWin.second == COL_WHITE) {
+			state.second = COL_WHITE;
+			return pair<int, State>(maxHeuristric, state);
+		}
+		else {
+			state.second = COL_BLACK;
+			return pair<int, State>(minHeuristic, state);
+		}
+	}
+
+	if (depth == maxDepth) { // base case
+		return pair<int, State>(heuro(state), state);
+	}
+
+	vector< pair<State, Move> > states = getAvailableStates(state);
+	if (states.size() == 0) {
+		state.second = (state.second == COL_WHITE ? COL_BLACK : COL_WHITE);
+		return minimax(state, depth + 1, maxDepth);
+	}
+	else {
+		if (state.second == COL_WHITE) {
+			// we maximize
+			int max = minHeuristic;
+			State maxState = states[0].first;
+
+			for (auto st : states) {
+				pair<int, State> result = minimax(st.first, depth + 1, maxDepth);
+				if (result.first > max) {
+					max = result.first;
+					maxState = st.first;
+					//maxState = result.second;
+				}
+			}
+
+			return pair<int, State>(max, maxState);
+		}
+		else {
+			// we minimize
+			int min = maxHeuristric;
+			State minState = states[0].first;
+
+			for (auto st : states) {
+				pair<int, State> result = minimax(st.first, depth + 1, maxDepth);
+				if (result.first < min) {
+					min = result.first;
+					minState = st.first;
+					//minState = result.second;
+				}
+			}
+
+			return pair<int, State>(min, minState);
+		}
+	}
+}
+
+vector<pair<State, Move>> Bot::getAvailableStates(State& state) {
 	vector<pair<State, Move>> result;
 	Board& b = state.first;
 	Color myColor = state.second;
@@ -230,89 +328,4 @@ vector<pair<State, Move>> Game::getAvailableStates(State& state) {
 	}
 
 	return result;
-}
-
-void Game::setPlayers(IPlayer& whitePlayer, IPlayer& blackPlayer) {
-	this->whitePlayer = &whitePlayer;
-	this->blackPlayer = &blackPlayer;
-}
-
-bool Game::isCorrectState(State& state) {
-	auto states = getAvailableStates(boardState);
-	for (auto& st : states)
-		if (st.first == state)
-			return true;
-
-	return false;
-}
-
-Color Game::play(bool verifyMoves) {
-	while (true)
-	{
-		State state;
-		if (getAvailableStates(boardState).size() > 0) {
-			do
-			{
-				state = blackPlayer->bestMove(boardState);
-				if (!verifyMoves) break;
-				if (isCorrectState(state)) break;
-				cout << "Black played incorrect move!" << endl;
-			} while (true);
-
-			boardState = state;
-			//printBoard();
-
-			auto endState = isWinner(COL_WHITE);
-			if (endState.first) {
-				cout << "***" << ((endState.second == COL_WHITE) ? "WHITE" : "BLACK") << " WINNER***" << endl;
-				return endState.second;
-			}
-		}
-		else {
-			boardState.second = COL_WHITE;
-		}
-
-		if (getAvailableStates(boardState).size() > 0) {
-			do
-			{
-				state = whitePlayer->bestMove(boardState);
-				if (!verifyMoves) break;
-				if (isCorrectState(state)) break;
-				cout << "White played incorrect move!" << endl;
-			} while (true);
-
-			boardState = state;
-			//printBoard();
-
-			auto endState = isWinner(COL_BLACK);
-			if (endState.first) {
-				cout << "***" << ((endState.second == COL_WHITE) ? "WHITE" : "BLACK") << " WINNER***" << endl;
-				return endState.second;
-			}
-		}
-		else {
-			boardState.second = COL_BLACK;
-		}
-	}
-}
-
-void Game::printBoard() {
-	cout << endl;
-
-	for (int i = 0; i < WIDTH; i++) {
-		cout << WIDTH - i;
-		for (int j = 0; j < HEIGHT; j++) {
-			cout << (char)boardState.first[i][j];
-		}
-
-		cout << endl;
-	}
-
-	char begin = 'A';
-	cout << " ";
-	for (int i = 0; i < HEIGHT; i++) {
-		cout << (char)(begin + i);
-	}
-
-	cout << endl;
 }

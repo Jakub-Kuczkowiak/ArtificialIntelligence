@@ -43,7 +43,7 @@ public:
 
 	vector<pair<State, Move>> getAvailableStates(State& state);
 
-	void play(bool verifyMoves);
+	Color play(bool verifyMoves);
 
 private:
 	State boardState;
