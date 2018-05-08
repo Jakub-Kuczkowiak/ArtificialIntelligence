@@ -19,22 +19,22 @@ Bot::Bot(Color color) {
 	int heuristic = 0;
 	for (int i = 0; i < WIDTH; i++) {
 		for (int j = 0; j < HEIGHT; j++) {
-			heuristic += abs(w[i][j]);
+			heuristic += max(0, (w[i][j]));
 		}
 	}
 
-	maxHeuristric = heuristic;
-	minHeuristic = -maxHeuristric;
+	maxHeuristic = heuristic;
+	minHeuristic = -maxHeuristic;
 }
 
 State Bot::bestMove(State& state)
 {
-	return (minimax(state, 0, 1).second);
+	return minimax(state, 0, 2, minHeuristic, maxHeuristic).second;
 }
 
 // We want it to be always positive for white and negative for black
-int Bot::heuro(State& state) {
-	Board& board = state.first;
+int Bot::heuro(const State& state) {
+	const Board& board = state.first;
 	// TODO: check if it's a winning or losing state.
 
 	// whites
@@ -53,30 +53,10 @@ int Bot::heuro(State& state) {
 		}
 	}
 
-	//if (countBlack == 0) return maxHeuristric;
-	//if (countWhite == 0) return minHeuristic;
-
-	//if (countWhite + countBlack == WIDTH * HEIGHT) {
-	//	if (countWhite >= countBlack) return maxHeuristric;
-	//	else return minHeuristic;
-	//}
-
-	//// can anyone move?
-	//if (getAvailableStates(state).size() == 0) {
-	//	state.second = state.second == COL_WHITE ? COL_BLACK : COL_WHITE;
-	//	if (getAvailableStates(state).size() == 0) {
-	//		if (state.second == COL_BLACK)
-	//			return maxHeuristric;
-	//		else
-	//			return minHeuristic;
-	//	}
-	//	state.second = state.second == COL_WHITE ? COL_BLACK : COL_WHITE;
-	//}
-
 	return heuristic;
 }
 
-pair<bool, Color> Bot::isWinner(State boardState, Color colorToMove) {
+pair<bool, Color> Bot::isWinner(State& boardState, Color colorToMove) {
 	int countWhite = 0, countBlack = 0;
 	bool isAnyEmpty = false;
 	for (int i = 0; i < WIDTH; i++) {
@@ -110,13 +90,31 @@ pair<bool, Color> Bot::isWinner(State boardState, Color colorToMove) {
 	return pair<bool, Color>(false, COL_WHITE);
 }
 
-pair<int, State> Bot::minimax(State state, int depth, int maxDepth) {
+struct minimizing
+{
+	inline bool operator() (const pair<State, int>& state1, const pair<State, int>& state2)
+	{
+		return state1.second < state2.second;
+	}
+};
+
+struct maximizing
+{
+	inline bool operator() (const pair<State, int>& state1, const pair<State, int>& state2)
+	{
+		return state1.second > state2.second;
+	}
+};
+
+// alpha is the current lower bound of the possible returned value;
+// beta is the current upper bound of the possible returned value.
+pair<int, State> Bot::minimax(State state, int depth, int maxDepth, int alpha, int beta) {
 	// base case: leaf, when game is finished
 	auto isWin = isWinner(state, state.second);
 	if (isWin.first) {
 		if (isWin.second == COL_WHITE) {
 			state.second = COL_WHITE;
-			return pair<int, State>(maxHeuristric, state);
+			return pair<int, State>(maxHeuristic, state);
 		}
 		else {
 			state.second = COL_BLACK;
@@ -124,44 +122,58 @@ pair<int, State> Bot::minimax(State state, int depth, int maxDepth) {
 		}
 	}
 
-	if (depth == maxDepth) { // base case
+	if (depth == maxDepth) { // base case of depth
 		return pair<int, State>(heuro(state), state);
 	}
 
 	vector< pair<State, Move> > states = getAvailableStates(state);
-	if (states.size() == 0) {
+	vector< pair<State, int> > statesProritySorted = vector< pair<State, int> >(states.size());
+
+	for (int i = 0; i < states.size(); i++) {
+		int heuroValue = heuro(states[i].first);
+		statesProritySorted[i] = pair<State, int>(states[i].first, heuroValue);
+	}
+
+	if (state.second == COL_WHITE)
+		sort(statesProritySorted.begin(), statesProritySorted.end(), maximizing());
+	else
+		sort(statesProritySorted.begin(), statesProritySorted.end(), minimizing());
+
+	if (statesProritySorted.size() == 0) {
 		state.second = (state.second == COL_WHITE ? COL_BLACK : COL_WHITE);
-		return minimax(state, depth + 1, maxDepth);
+		return minimax(state, depth + 1, maxDepth, alpha, beta);
 	}
 	else {
-		if (state.second == COL_WHITE) {
-			// we maximize
-			int max = minHeuristic;
-			State maxState = states[0].first;
+		if (state.second == COL_WHITE) { // maximizing node
+			int max = alpha; // instead of minHeuristic
+			State& maxState = states[0].first;
 
-			for (auto st : states) {
-				pair<int, State> result = minimax(st.first, depth + 1, maxDepth);
+			for (auto st : statesProritySorted) {
+				pair<int, State> result = minimax(st.first, depth + 1, maxDepth, max, beta);
 				if (result.first > max) {
 					max = result.first;
 					maxState = st.first;
-					//maxState = result.second;
 				}
+
+				if (max >= beta)	// beta cut off
+					return pair<int, State>(max, maxState);
 			}
 
 			return pair<int, State>(max, maxState);
 		}
-		else {
-			// we minimize
-			int min = maxHeuristric;
-			State minState = states[0].first;
+		else { // minimizing node
+			int min = beta;
+			State& minState = states[0].first;
 
 			for (auto st : states) {
-				pair<int, State> result = minimax(st.first, depth + 1, maxDepth);
+				pair<int, State> result = minimax(st.first, depth + 1, maxDepth, alpha, min);
 				if (result.first < min) {
 					min = result.first;
 					minState = st.first;
-					//minState = result.second;
 				}
+
+				if (min <= alpha) // alpha cut off
+					return pair<int, State>(min, minState);
 			}
 
 			return pair<int, State>(min, minState);
