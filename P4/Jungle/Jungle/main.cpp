@@ -8,7 +8,7 @@ int main() {
 	for (int i = 0; i < TESTS; i++) {
 		Game game;
 
-		if (game.play() == WHITE) {
+		if (game.play(true, true) == WHITE) {
 			whiteWins++;
 		}
 		else {
