@@ -18,32 +18,6 @@ int main() {
 	Bot whiteBot(COL_WHITE);
 	Bot blackBot(COL_BLACK);
 
-	/*Board board = {
-		{BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, WHITE},
-	{	BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, WHITE, WHITE },
-	{ BLACK, WHITE, WHITE, WHITE, WHITE, WHITE, BLACK, WHITE},
-	{ BLACK, BLACK, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE},
-	{ BLACK, BLACK, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE },
-	{ BLACK, WHITE, WHITE, BLACK, WHITE, BLACK, WHITE, WHITE},
-	{ WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE},
-	{WHITE, BLACK, BLACK, BLACK, BLACK, BLACK, EMPTY, EMPTY}
-	};
-
-	State st;
-	st.first = board;
-	st.second = COL_BLACK;
-	auto retState = blackBot.minimax(st, 0, 3);*/
-
-	/*BBBBBBBW
-		BBBBBBWW
-		BWWWWWBW
-		BBWWWWWW
-		BBWWWWWW
-		BWWBWBWW
-		WWWWWWWW
-		WBBBBB..*/
-
-
 	int whiteWins = 0, blackWins = 0;
 
 	clock_t begin = clock();

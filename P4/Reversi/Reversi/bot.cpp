@@ -32,28 +32,132 @@ State Bot::bestMove(State& state)
 	return minimax(state, 0, 2, minHeuristic, maxHeuristic).second;
 }
 
+int Bot::cornersDifference(const State& state) {
+	int whiteCorners = 0, blackCorners = 0;
+	if (state.first[0][0] == Field::WHITE) whiteCorners++;
+	else if (state.first[0][0] == Field::BLACK) blackCorners++;
+	
+	if (state.first[0][HEIGHT-1] == Field::WHITE) whiteCorners++;
+	else if (state.first[0][HEIGHT- 1] == Field::BLACK) blackCorners++;
+
+	if (state.first[WIDTH- 1][0] == Field::WHITE) whiteCorners++;
+	else if (state.first[WIDTH - 1][0] == Field::BLACK) blackCorners++;
+
+	if (state.first[WIDTH - 1][HEIGHT - 1] == Field::WHITE) whiteCorners++;
+	else if (state.first[WIDTH - 1][HEIGHT - 1] == Field::BLACK) blackCorners++;
+
+	return 100 * (whiteCorners - blackCorners) / (whiteCorners + blackCorners + 1);
+}
+
+int Bot::countWeights(const State& state) {
+	if (state.first[0][0] != EMPTY) {
+		w[0][1] = 0;
+		w[0][2] = 0;
+		w[0][3] = 0;
+		w[1][0] = 0;
+		w[1][2] = 0;
+		w[1][3] = 0;
+		w[1][4] = 0;
+		w[2][0] = 0;
+		w[2][1] = 0;
+		w[2][2] = 0;
+		w[3][0] = 0;
+		w[3][1] = 0;
+	}
+
+	if (state.first[0][7] != EMPTY) {
+		w[0][4] = 0;
+		w[0][5] = 0;
+		w[0][6] = 0;
+		w[1][4] = 0;
+		w[1][5] = 0;
+		w[1][6] = 0;
+		w[1][7] = 0;
+		w[2][5] = 0;
+		w[2][6] = 0;
+		w[2][7] = 0;
+		w[3][6] = 0;
+		w[3][7] = 0;
+	}
+
+	if (state.first[7][0] != EMPTY) {
+		w[4][0] = 0;
+		w[4][1] = 0;
+		w[5][0] = 0;
+		w[5][1] = 0;
+		w[5][2] = 0;
+		w[6][0] = 0;
+		w[6][1] = 0;
+		w[6][2] = 0;
+		w[6][3] = 0;
+		w[7][1] = 0;
+		w[7][2] = 0;
+		w[7][3] = 0;
+	}
+
+	if (state.first[7][7] != EMPTY) {
+		w[4][6] = 0;
+		w[4][7] = 0;
+		w[5][5] = 0;
+		w[5][6] = 0;
+		w[5][6] = 0;
+		w[6][4] = 0;
+		w[6][5] = 0;
+		w[6][6] = 0;
+		w[6][7] = 0;
+		w[7][4] = 0;
+		w[7][5] = 0;
+		w[7][6] = 0;
+	}
+
+	int sum = 0;
+	for (int i = 0; i < WIDTH; i++) {
+		for (int j = 0; j < HEIGHT; j++) {
+			if (state.first[i][j] == Field::WHITE) {
+				sum += w[i][j];
+			}
+			else if (state.first[i][j] == Field::BLACK) {
+				sum -= w[i][j];
+			}
+		}
+	}
+
+	return sum;
+}
+
 // We want it to be always positive for white and negative for black
 int Bot::heuro(const State& state) {
 	const Board& board = state.first;
-	// TODO: check if it's a winning or losing state.
+	// TODO: Probably also terminal state here.
 
-	// whites
-	int heuristic = 0;
 	int countWhite = 0, countBlack = 0;
 	for (int i = 0; i < WIDTH; i++) {
 		for (int j = 0; j < HEIGHT; j++) {
 			if (board[i][j] == Field::WHITE) {
-				heuristic += w[i][j];
 				countWhite++;
 			}
 			else if (board[i][j] == Field::BLACK) {
-				heuristic -= w[i][j];
 				countBlack++;
 			}
 		}
 	}
 
-	return heuristic;
+	int weightsSum = countWeights(state);
+	int cornersSum = cornersDifference(state);
+
+	int count = countWhite + countBlack;
+	//return 20 * weightsSum + 10000 * cornersSum;
+	
+	if (count <= 20) // begin game 
+	{
+		return 20 * weightsSum + 10000 * cornersSum;
+	}
+	else if (count <= 58) { // middle game
+		return 10 * weightsSum + 10000 * cornersSum;
+	}
+	else { // end game
+		return weightsSum;
+	}
 }
 
 pair<bool, Color> Bot::isWinner(State& boardState, Color colorToMove) {
@@ -127,6 +231,11 @@ pair<int, State> Bot::minimax(State state, int depth, int maxDepth, int alpha, i
 	}
 
 	vector< pair<State, Move> > states = getAvailableStates(state);
+	if (states.size() == 0) {
+		state.second = (state.second == COL_WHITE ? COL_BLACK : COL_WHITE);
+		return minimax(state, depth + 1, maxDepth, alpha, beta);
+	}
+
 	vector< pair<State, int> > statesProritySorted = vector< pair<State, int> >(states.size());
 
 	for (int i = 0; i < states.size(); i++) {
@@ -139,45 +248,39 @@ pair<int, State> Bot::minimax(State state, int depth, int maxDepth, int alpha, i
 	else
 		sort(statesProritySorted.begin(), statesProritySorted.end(), minimizing());
 
-	if (statesProritySorted.size() == 0) {
-		state.second = (state.second == COL_WHITE ? COL_BLACK : COL_WHITE);
-		return minimax(state, depth + 1, maxDepth, alpha, beta);
+	if (state.second == COL_WHITE) { // maximizing node
+		int max = alpha; // instead of minHeuristic
+		State& maxState = states[0].first;
+
+		for (auto st : statesProritySorted) {
+			pair<int, State> result = minimax(st.first, depth + 1, maxDepth, max, beta);
+			if (result.first > max) {
+				max = result.first;
+				maxState = st.first;
+			}
+
+			if (max >= beta)	// beta cut off
+				return pair<int, State>(max, maxState);
+		}
+
+		return pair<int, State>(max, maxState);
 	}
-	else {
-		if (state.second == COL_WHITE) { // maximizing node
-			int max = alpha; // instead of minHeuristic
-			State& maxState = states[0].first;
+	else { // minimizing node
+		int min = beta;
+		State& minState = states[0].first;
 
-			for (auto st : statesProritySorted) {
-				pair<int, State> result = minimax(st.first, depth + 1, maxDepth, max, beta);
-				if (result.first > max) {
-					max = result.first;
-					maxState = st.first;
-				}
-
-				if (max >= beta)	// beta cut off
-					return pair<int, State>(max, maxState);
+		for (auto st : states) {
+			pair<int, State> result = minimax(st.first, depth + 1, maxDepth, alpha, min);
+			if (result.first < min) {
+				min = result.first;
+				minState = st.first;
 			}
 
-			return pair<int, State>(max, maxState);
+			if (min <= alpha) // alpha cut off
+				return pair<int, State>(min, minState);
 		}
-		else { // minimizing node
-			int min = beta;
-			State& minState = states[0].first;
 
-			for (auto st : states) {
-				pair<int, State> result = minimax(st.first, depth + 1, maxDepth, alpha, min);
-				if (result.first < min) {
-					min = result.first;
-					minState = st.first;
-				}
-
-				if (min <= alpha) // alpha cut off
-					return pair<int, State>(min, minState);
-			}
-
-			return pair<int, State>(min, minState);
-		}
+		return pair<int, State>(min, minState);
 	}
 }
 
