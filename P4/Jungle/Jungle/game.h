@@ -5,10 +5,11 @@ using namespace std;
 
 enum Field
 {
-	LAND, // l¹d / ³¹ka
-	TRAP, // pu³apka
-	DEN, // jama
-	RIVER // rzeka
+	LAND = '.', // l¹d / ³¹ka
+	TRAP = '#', // pu³apka
+	WHITEDEN = '*', // jama
+	BLACKDEN = '*',
+	RIVER = '~' // rzeka
 };
 
 enum Figure
@@ -25,7 +26,7 @@ enum Figure
 };
 
 const Field Board[9][7] = {
-	{ LAND, LAND, TRAP, DEN, TRAP, LAND, LAND},
+	{ LAND, LAND, TRAP, BLACKDEN, TRAP, LAND, LAND},
 	{ LAND, LAND, LAND, TRAP, LAND, LAND, LAND},
 	{ LAND, LAND, LAND, LAND, LAND, LAND, LAND},
 	{ LAND, RIVER, RIVER, LAND, RIVER, RIVER, LAND },
@@ -33,7 +34,7 @@ const Field Board[9][7] = {
 	{ LAND, RIVER, RIVER, LAND, RIVER, RIVER, LAND },
 	{ LAND, LAND, LAND, LAND, LAND, LAND, LAND },
 	{ LAND, LAND, LAND, TRAP, LAND, LAND, LAND },
-	{ LAND, LAND, TRAP, DEN, TRAP, LAND, LAND },
+	{ LAND, LAND, TRAP, WHITEDEN, TRAP, LAND, LAND },
 };
 
 enum Color
@@ -77,6 +78,7 @@ class Game
 {
 public:
 	Game();
+	void setPlayers(IPlayer* whitePlayer, IPlayer* blackPlayer);
 	Color play(bool verifyMoves, bool printState);
 	void printBoard();
 	vector<State> getMoves(const State& state);
@@ -87,4 +89,6 @@ private:
 	IPlayer* blackPlayer;
 
 	State boardState;
+
+	const int MAX_MOVES_WITHOUT_CAPTURE = 50;
 };
