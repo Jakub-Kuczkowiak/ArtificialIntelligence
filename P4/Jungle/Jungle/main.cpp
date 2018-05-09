@@ -27,8 +27,6 @@ int main() {
 		}
 	}
 
-	// TODO: CHECK IF SORTING IS PROPER, THAT IS DECREASING!
-
 	system("PAUSE");
 	return 0;
 }

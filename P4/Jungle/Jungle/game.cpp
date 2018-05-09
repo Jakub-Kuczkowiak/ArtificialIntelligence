@@ -2,6 +2,47 @@
 #include <iostream>
 #include <algorithm>
 
+int getFigureStrength(Figure figure) {
+	switch (figure)
+	{
+	case ELEPHANT:
+		return 7;
+	case LION:
+		return 6;
+	case TIGER:
+		return 5;
+	case JAGUAR:
+		return 4;
+	case WOLF:
+		return 3;
+	case DOG:
+		return 2;
+	case CAT:
+		return 1;
+	case RAT:
+		return 0;
+	case EMPTY: // used just to know if we can step into this field.
+		return -1;
+	}
+}
+
+// ONE SHOULD BE INCREASING ONE DECREASING!
+struct figure_sort
+{
+	inline bool operator() (const pair<Figure, int>& figure1, const pair<Figure, int>& figure2)
+	{
+		return getFigureStrength(figure1.first) > getFigureStrength(figure2.first);
+	}
+};
+
+struct distance_sort
+{
+	inline bool operator() (const pair<Figure, int>& figure1, const pair<Figure, int>& figure2)
+	{
+		return figure1.second < figure2.second;
+	}
+};
+
 Game::Game() {
 	whitePlayer = blackPlayer = nullptr;
 
@@ -37,45 +78,6 @@ void Game::setPlayers(IPlayer& whitePlayer, IPlayer& blackPlayer) {
 	this->blackPlayer = &blackPlayer;
 }
 
-int getFigureStrength(Figure figure) {
-	switch (figure)
-	{
-	case ELEPHANT:
-		return 7;
-	case LION:
-		return 6;
-	case TIGER:
-		return 5;
-	case JAGUAR:
-		return 4;
-	case WOLF:
-		return 3;
-	case DOG:
-		return 2;
-	case CAT:
-		return 1;
-	case RAT:
-		return 0;
-	}
-}
-
-// ONE SHOULD BE INCREASING ONE DECREASING!
-struct figure_sort
-{
-	inline bool operator() (const pair<Figure, int>& figure1, const pair<Figure, int>& figure2)
-	{
-		return getFigureStrength(figure1.first) > getFigureStrength(figure2.first);
-	}
-};
-
-struct distance_sort
-{
-	inline bool operator() (const pair<Figure, int>& figure1, const pair<Figure, int>& figure2)
-	{
-		return figure1.second < figure2.second;
-	}
-};
-
 bool Game::isWinner(const State& state, Color& winner) {
 	if (state.color == WHITE) {
 		// then last move was done by black, so we check if black won.
@@ -110,7 +112,6 @@ bool Game::isWinner(const State& state, Color& winner) {
 			}
 		}
 
-		// TODO: koniecznie sprawdzic czy malejaco sortuje!
 		sort(whiteFigs.begin(), whiteFigs.end(), figure_sort());
 		sort(blackFigs.begin(), blackFigs.end(), figure_sort());
 
@@ -138,7 +139,6 @@ bool Game::isWinner(const State& state, Color& winner) {
 		// here we are sure that whiteFigs.size() == blackFigs.size()
 
 		// check taxi distance
-		// TODO: check if sorting is proper
 		sort(whiteFigs.begin(), whiteFigs.end(), distance_sort());
 		sort(blackFigs.begin(), blackFigs.end(), distance_sort());
 
@@ -208,8 +208,265 @@ Color Game::play(bool verifyMoves, bool printState)
 	return WHITE;
 }
 
+
 vector<State> Game::getMoves(const State& state) {
-	throw "not implemented";
+	vector<State> result;
+
+	Field myDen = (state.color == WHITE) ? WHITEDEN : BLACKDEN;
+	auto& myFigures = (state.color == WHITE) ? state.whiteFigures : state.blackFigures;
+	auto& enemyFigures = (state.color == WHITE) ? state.blackFigures : state.whiteFigures;
+
+	for (int i = 0; i < 9; i++) {
+		for (int j = 0; j < 7; j++) {
+			vector< pair<int, int> > indices = { { i - 1, j },{ i + 1, j },{ i, j - 1 },{ i, j + 1 } };
+
+			switch (myFigures[i][j])
+			{
+			case RAT:
+				for (auto index : indices) {
+					int newI = index.first, newJ = index.second;
+					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					if (Board[newI][newJ] != myDen) { // we check if it is our DEN
+						if (Board[newI][newJ] == Field::TRAP ||
+							getFigureStrength(myFigures[i][j]) >= getFigureStrength(enemyFigures[newI][newJ]) ||
+							enemyFigures[newI][newJ] == Figure::ELEPHANT) { // here we know that we can capture this field
+
+							// rat cannot capture from water to land
+							if (Board[i][j] == Field::RIVER && Board[newI][newJ] == Field::LAND) {
+								if (enemyFigures[newI][newJ] != Figure::EMPTY) continue;
+							}
+
+							State newState = state;
+							newState.color = (state.color == WHITE ? BLACK : WHITE);
+							if (enemyFigures[newI][newJ] != Figure::EMPTY) newState.noCaptureMoves = 0;
+							else newState.noCaptureMoves++;
+
+							if (state.color == WHITE) {
+								newState.whiteFigures[i][j] = Figure::EMPTY;
+								newState.whiteFigures[newI][newJ] = Figure::RAT;
+								newState.blackFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							result.push_back(newState);
+						}
+					}
+				}
+				break;
+			case CAT:
+				for (auto index : indices) {
+					int newI = index.first, newJ = index.second;
+					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					if (Board[newI][newJ] != myDen && Board[newI][newJ] != Field::RIVER) { // we check if it is our DEN or WATER
+						if (Board[newI][newJ] == Field::TRAP ||
+							getFigureStrength(myFigures[i][j]) >= getFigureStrength(enemyFigures[newI][newJ])) { // here we know that we can capture this field
+
+							State newState = state;
+							newState.color = (state.color == WHITE ? BLACK : WHITE);
+							if (enemyFigures[newI][newJ] != Figure::EMPTY) newState.noCaptureMoves = 0;
+							else newState.noCaptureMoves++;
+
+							if (state.color == WHITE) {
+								newState.whiteFigures[i][j] = Figure::EMPTY;
+								newState.whiteFigures[newI][newJ] = Figure::CAT;
+								newState.blackFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							result.push_back(newState);
+						}
+					}
+				}
+				break;
+			case DOG:
+				for (auto index : indices) {
+					int newI = index.first, newJ = index.second;
+					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					if (Board[newI][newJ] != myDen && Board[newI][newJ] != Field::RIVER) { // we check if it is our DEN or WATER
+						if (Board[newI][newJ] == Field::TRAP ||
+							getFigureStrength(myFigures[i][j]) >= getFigureStrength(enemyFigures[newI][newJ])) { // here we know that we can capture this field
+
+							State newState = state;
+							newState.color = (state.color == WHITE ? BLACK : WHITE);
+							if (enemyFigures[newI][newJ] != Figure::EMPTY) newState.noCaptureMoves = 0;
+							else newState.noCaptureMoves++;
+
+							if (state.color == WHITE) {
+								newState.whiteFigures[i][j] = Figure::EMPTY;
+								newState.whiteFigures[newI][newJ] = Figure::DOG;
+								newState.blackFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							result.push_back(newState);
+						}
+					}
+				}
+				break;
+			case WOLF:
+				for (auto index : indices) {
+					int newI = index.first, newJ = index.second;
+					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					if (Board[newI][newJ] != myDen && Board[newI][newJ] != Field::RIVER) { // we check if it is our DEN or WATER
+						if (Board[newI][newJ] == Field::TRAP ||
+							getFigureStrength(myFigures[i][j]) >= getFigureStrength(enemyFigures[newI][newJ])) { // here we know that we can capture this field
+
+							State newState = state;
+							newState.color = (state.color == WHITE ? BLACK : WHITE);
+							if (enemyFigures[newI][newJ] != Figure::EMPTY) newState.noCaptureMoves = 0;
+							else newState.noCaptureMoves++;
+
+							if (state.color == WHITE) {
+								newState.whiteFigures[i][j] = Figure::EMPTY;
+								newState.whiteFigures[newI][newJ] = Figure::WOLF;
+								newState.blackFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							result.push_back(newState);
+						}
+					}
+				}
+				break;
+			case JAGUAR:
+				for (auto index : indices) {
+					int newI = index.first, newJ = index.second;
+					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					if (Board[newI][newJ] != myDen && Board[newI][newJ] != Field::RIVER) { // we check if it is our DEN or WATER
+						if (Board[newI][newJ] == Field::TRAP ||
+							getFigureStrength(myFigures[i][j]) >= getFigureStrength(enemyFigures[newI][newJ])) { // here we know that we can capture this field
+
+							State newState = state;
+							newState.color = (state.color == WHITE ? BLACK : WHITE);
+							if (enemyFigures[newI][newJ] != Figure::EMPTY) newState.noCaptureMoves = 0;
+							else newState.noCaptureMoves++;
+
+							if (state.color == WHITE) {
+								newState.whiteFigures[i][j] = Figure::EMPTY;
+								newState.whiteFigures[newI][newJ] = Figure::JAGUAR;
+								newState.blackFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							result.push_back(newState);
+						}
+					}
+				}
+				break;
+			case TIGER:
+				for (auto index : indices) {
+					int newI = index.first, newJ = index.second;
+					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					if (Board[newI][newJ] != myDen) { // we check if it is our DEN
+						if (Board[newI][newJ] == Field::RIVER) { // we handle jumping over river if there was no rat met
+							bool bWasRat = false;
+							int iDiff = newI - i, jDiff = newJ - j;
+							do
+							{
+								if (enemyFigures[newI][newJ] == Figure::RAT) {
+									bWasRat = true;
+									break;
+								}
+
+								newI += iDiff;
+								newJ += jDiff;
+							} while (Board[newI][newJ] != Field::RIVER);
+						}
+
+						if (Board[newI][newJ] == Field::TRAP ||
+							getFigureStrength(myFigures[i][j]) >= getFigureStrength(enemyFigures[newI][newJ])) { // here we know that we can capture this field
+
+							State newState = state;
+							newState.color = (state.color == WHITE ? BLACK : WHITE);
+							if (enemyFigures[newI][newJ] != Figure::EMPTY) newState.noCaptureMoves = 0;
+							else newState.noCaptureMoves++;
+
+							if (state.color == WHITE) {
+								newState.whiteFigures[i][j] = Figure::EMPTY;
+								newState.whiteFigures[newI][newJ] = Figure::TIGER;
+								newState.blackFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							result.push_back(newState);
+						}
+					}
+				}
+				break;
+			case LION:
+				for (auto index : indices) {
+					int newI = index.first, newJ = index.second;
+					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					if (Board[newI][newJ] != myDen) { // we check if it is our DEN
+						if (Board[newI][newJ] == Field::RIVER) { // we handle jumping over river if there was no rat met
+							bool bWasRat = false;
+							int iDiff = newI - i, jDiff = newJ - j;
+							do
+							{
+								if (enemyFigures[newI][newJ] == Figure::RAT) {
+									bWasRat = true;
+									break;
+								}
+
+								newI += iDiff;
+								newJ += jDiff;
+							} while (Board[newI][newJ] != Field::RIVER);
+						}
+
+						if (Board[newI][newJ] == Field::TRAP ||
+							getFigureStrength(myFigures[i][j]) >= getFigureStrength(enemyFigures[newI][newJ])) { // here we know that we can capture this field
+
+							State newState = state;
+							newState.color = (state.color == WHITE ? BLACK : WHITE);
+							if (enemyFigures[newI][newJ] != Figure::EMPTY) newState.noCaptureMoves = 0;
+							else newState.noCaptureMoves++;
+
+							if (state.color == WHITE) {
+								newState.whiteFigures[i][j] = Figure::EMPTY;
+								newState.whiteFigures[newI][newJ] = Figure::LION;
+								newState.blackFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							result.push_back(newState);
+						}
+					}
+				}
+				break;
+			case ELEPHANT:
+				for (auto index : indices) {
+					int newI = index.first, newJ = index.second;
+					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					if (Board[newI][newJ] != myDen && Board[newI][newJ] != Field::RIVER) { // we check if it is our DEN or WATER
+						if ((Board[newI][newJ] == Field::TRAP ||
+							getFigureStrength(myFigures[i][j]) >= getFigureStrength(enemyFigures[newI][newJ])) &&
+							enemyFigures[i][j] != Figure::RAT) { // here we know that we can capture this field; elephant is weaker than RAT
+
+							State newState = state;
+							newState.color = (state.color == WHITE ? BLACK : WHITE);
+							if (enemyFigures[newI][newJ] != Figure::EMPTY) newState.noCaptureMoves = 0;
+							else newState.noCaptureMoves++;
+
+							if (state.color == WHITE) {
+								newState.whiteFigures[i][j] = Figure::EMPTY;
+								newState.whiteFigures[newI][newJ] = Figure::ELEPHANT;
+								newState.blackFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							result.push_back(newState);
+						}
+					}
+				}
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+
+	return result;
 }
 
 void Game::printBoard() {
