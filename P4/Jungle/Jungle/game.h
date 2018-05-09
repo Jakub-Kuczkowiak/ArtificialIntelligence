@@ -71,6 +71,7 @@ public:
 class IPlayer
 {
 public:
+	~IPlayer() { }
 	virtual State bestMove(const State& state) = 0;
 };
 
@@ -78,7 +79,7 @@ class Game
 {
 public:
 	Game();
-	void setPlayers(IPlayer* whitePlayer, IPlayer* blackPlayer);
+	void setPlayers(IPlayer& whitePlayer, IPlayer& blackPlayer);
 	Color play(bool verifyMoves, bool printState);
 	void printBoard();
 	vector<State> getMoves(const State& state);

@@ -32,9 +32,9 @@ Game::Game() {
 	boardState = State(whiteFigures, blackFigures, WHITE, 0);
 }
 
-void Game::setPlayers(IPlayer* whitePlayer, IPlayer* blackPlayer) {
-	this->whitePlayer = whitePlayer;
-	this->blackPlayer = blackPlayer;
+void Game::setPlayers(IPlayer& whitePlayer, IPlayer& blackPlayer) {
+	this->whitePlayer = &whitePlayer;
+	this->blackPlayer = &blackPlayer;
 }
 
 int getFigureStrength(Figure figure) {
@@ -163,7 +163,7 @@ bool Game::isWinner(const State& state, Color& winner) {
 
 Color Game::play(bool verifyMoves, bool printState)
 {
-	if (!whitePlayer || !blackPlayer) {
+	if (whitePlayer == nullptr || blackPlayer == nullptr) {
 		throw "There are no players!";
 	}
 
