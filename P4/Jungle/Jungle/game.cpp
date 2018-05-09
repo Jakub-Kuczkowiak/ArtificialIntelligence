@@ -173,10 +173,10 @@ Color Game::play(bool verifyMoves, bool printState)
 		State newState;
 
 		if (boardState.color == WHITE) {
-			State newState = whitePlayer->bestMove(boardState);
+			newState = whitePlayer->bestMove(boardState);
 		}
 		else {
-			State newState = blackPlayer->bestMove(boardState);
+			newState = blackPlayer->bestMove(boardState);
 		}
 
 		if (verifyMoves) {
@@ -209,7 +209,7 @@ Color Game::play(bool verifyMoves, bool printState)
 }
 
 
-vector<State> Game::getMoves(const State& state) {
+vector<State> getMoves(const State& state) {
 	vector<State> result;
 
 	Field myDen = (state.color == WHITE) ? WHITEDEN : BLACKDEN;
@@ -226,6 +226,9 @@ vector<State> Game::getMoves(const State& state) {
 				for (auto index : indices) {
 					int newI = index.first, newJ = index.second;
 					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					// we cannot capture our own figure
+					if (myFigures[newI][newJ] != Figure::EMPTY) continue;
 
 					if (Board[newI][newJ] != myDen) { // we check if it is our DEN
 						if (Board[newI][newJ] == Field::TRAP ||
@@ -247,6 +250,16 @@ vector<State> Game::getMoves(const State& state) {
 								newState.whiteFigures[newI][newJ] = Figure::RAT;
 								newState.blackFigures[newI][newJ] = Figure::EMPTY;
 							}
+							else {
+								newState.blackFigures[i][j] = Figure::EMPTY;
+								newState.blackFigures[newI][newJ] = Figure::RAT;
+								newState.whiteFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							char move[6];
+							sprintf_s(move, 6, "%c%d%c%d", j + 'A', 9 - i, newJ + 'A', 9 - newI);
+							string sMove = move;
+							newState.lastMove = move;
 
 							result.push_back(newState);
 						}
@@ -257,6 +270,9 @@ vector<State> Game::getMoves(const State& state) {
 				for (auto index : indices) {
 					int newI = index.first, newJ = index.second;
 					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					// we cannot capture our own figure
+					if (myFigures[newI][newJ] != Figure::EMPTY) continue;
 
 					if (Board[newI][newJ] != myDen && Board[newI][newJ] != Field::RIVER) { // we check if it is our DEN or WATER
 						if (Board[newI][newJ] == Field::TRAP ||
@@ -272,6 +288,16 @@ vector<State> Game::getMoves(const State& state) {
 								newState.whiteFigures[newI][newJ] = Figure::CAT;
 								newState.blackFigures[newI][newJ] = Figure::EMPTY;
 							}
+							else {
+								newState.blackFigures[i][j] = Figure::EMPTY;
+								newState.blackFigures[newI][newJ] = Figure::CAT;
+								newState.whiteFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							char move[6];
+							sprintf_s(move, 6, "%c%d%c%d", j + 'A', 9 - i, newJ + 'A', 9 - newI);
+							string sMove = move;
+							newState.lastMove = move;
 
 							result.push_back(newState);
 						}
@@ -282,6 +308,9 @@ vector<State> Game::getMoves(const State& state) {
 				for (auto index : indices) {
 					int newI = index.first, newJ = index.second;
 					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					// we cannot capture our own figure
+					if (myFigures[newI][newJ] != Figure::EMPTY) continue;
 
 					if (Board[newI][newJ] != myDen && Board[newI][newJ] != Field::RIVER) { // we check if it is our DEN or WATER
 						if (Board[newI][newJ] == Field::TRAP ||
@@ -297,6 +326,16 @@ vector<State> Game::getMoves(const State& state) {
 								newState.whiteFigures[newI][newJ] = Figure::DOG;
 								newState.blackFigures[newI][newJ] = Figure::EMPTY;
 							}
+							else {
+								newState.blackFigures[i][j] = Figure::EMPTY;
+								newState.blackFigures[newI][newJ] = Figure::DOG;
+								newState.whiteFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							char move[6];
+							sprintf_s(move, 6, "%c%d%c%d", j + 'A', 9 - i, newJ + 'A', 9 - newI);
+							string sMove = move;
+							newState.lastMove = move;
 
 							result.push_back(newState);
 						}
@@ -307,6 +346,9 @@ vector<State> Game::getMoves(const State& state) {
 				for (auto index : indices) {
 					int newI = index.first, newJ = index.second;
 					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					// we cannot capture our own figure
+					if (myFigures[newI][newJ] != Figure::EMPTY) continue;
 
 					if (Board[newI][newJ] != myDen && Board[newI][newJ] != Field::RIVER) { // we check if it is our DEN or WATER
 						if (Board[newI][newJ] == Field::TRAP ||
@@ -322,6 +364,16 @@ vector<State> Game::getMoves(const State& state) {
 								newState.whiteFigures[newI][newJ] = Figure::WOLF;
 								newState.blackFigures[newI][newJ] = Figure::EMPTY;
 							}
+							else {
+								newState.blackFigures[i][j] = Figure::EMPTY;
+								newState.blackFigures[newI][newJ] = Figure::WOLF;
+								newState.whiteFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							char move[6];
+							sprintf_s(move, 6, "%c%d%c%d", j + 'A', 9 - i, newJ + 'A', 9 - newI);
+							string sMove = move;
+							newState.lastMove = move;
 
 							result.push_back(newState);
 						}
@@ -332,6 +384,9 @@ vector<State> Game::getMoves(const State& state) {
 				for (auto index : indices) {
 					int newI = index.first, newJ = index.second;
 					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					// we cannot capture our own figure
+					if (myFigures[newI][newJ] != Figure::EMPTY) continue;
 
 					if (Board[newI][newJ] != myDen && Board[newI][newJ] != Field::RIVER) { // we check if it is our DEN or WATER
 						if (Board[newI][newJ] == Field::TRAP ||
@@ -347,6 +402,16 @@ vector<State> Game::getMoves(const State& state) {
 								newState.whiteFigures[newI][newJ] = Figure::JAGUAR;
 								newState.blackFigures[newI][newJ] = Figure::EMPTY;
 							}
+							else {
+								newState.blackFigures[i][j] = Figure::EMPTY;
+								newState.blackFigures[newI][newJ] = Figure::JAGUAR;
+								newState.whiteFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							char move[6];
+							sprintf_s(move, 6, "%c%d%c%d", j + 'A', 9 - i, newJ + 'A', 9 - newI);
+							string sMove = move;
+							newState.lastMove = move;
 
 							result.push_back(newState);
 						}
@@ -374,6 +439,9 @@ vector<State> Game::getMoves(const State& state) {
 							} while (Board[newI][newJ] != Field::RIVER);
 						}
 
+						// we cannot capture our own figure
+						if (myFigures[newI][newJ] != Figure::EMPTY) continue;
+
 						if (Board[newI][newJ] == Field::TRAP ||
 							getFigureStrength(myFigures[i][j]) >= getFigureStrength(enemyFigures[newI][newJ])) { // here we know that we can capture this field
 
@@ -387,6 +455,16 @@ vector<State> Game::getMoves(const State& state) {
 								newState.whiteFigures[newI][newJ] = Figure::TIGER;
 								newState.blackFigures[newI][newJ] = Figure::EMPTY;
 							}
+							else {
+								newState.blackFigures[i][j] = Figure::EMPTY;
+								newState.blackFigures[newI][newJ] = Figure::TIGER;
+								newState.whiteFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							char move[6];
+							sprintf_s(move, 6, "%c%d%c%d", j + 'A', 9 - i, newJ + 'A', 9 - newI);
+							string sMove = move;
+							newState.lastMove = move;
 
 							result.push_back(newState);
 						}
@@ -414,6 +492,9 @@ vector<State> Game::getMoves(const State& state) {
 							} while (Board[newI][newJ] != Field::RIVER);
 						}
 
+						// we cannot capture our own figure
+						if (myFigures[newI][newJ] != Figure::EMPTY) continue;
+
 						if (Board[newI][newJ] == Field::TRAP ||
 							getFigureStrength(myFigures[i][j]) >= getFigureStrength(enemyFigures[newI][newJ])) { // here we know that we can capture this field
 
@@ -427,6 +508,16 @@ vector<State> Game::getMoves(const State& state) {
 								newState.whiteFigures[newI][newJ] = Figure::LION;
 								newState.blackFigures[newI][newJ] = Figure::EMPTY;
 							}
+							else {
+								newState.blackFigures[i][j] = Figure::EMPTY;
+								newState.blackFigures[newI][newJ] = Figure::LION;
+								newState.whiteFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							char move[6];
+							sprintf_s(move, 6, "%c%d%c%d", j + 'A', 9 - i, newJ + 'A', 9 - newI);
+							string sMove = move;
+							newState.lastMove = move;
 
 							result.push_back(newState);
 						}
@@ -437,6 +528,9 @@ vector<State> Game::getMoves(const State& state) {
 				for (auto index : indices) {
 					int newI = index.first, newJ = index.second;
 					if (newI < 0 || newI > 8 || newJ < 0 || newJ > 6) continue;
+
+					// we cannot capture our own figure
+					if (myFigures[newI][newJ] != Figure::EMPTY) continue;
 
 					if (Board[newI][newJ] != myDen && Board[newI][newJ] != Field::RIVER) { // we check if it is our DEN or WATER
 						if ((Board[newI][newJ] == Field::TRAP ||
@@ -453,6 +547,16 @@ vector<State> Game::getMoves(const State& state) {
 								newState.whiteFigures[newI][newJ] = Figure::ELEPHANT;
 								newState.blackFigures[newI][newJ] = Figure::EMPTY;
 							}
+							else {
+								newState.blackFigures[i][j] = Figure::EMPTY;
+								newState.blackFigures[newI][newJ] = Figure::ELEPHANT;
+								newState.whiteFigures[newI][newJ] = Figure::EMPTY;
+							}
+
+							char move[6];
+							sprintf_s(move, 6, "%c%d%c%d", j + 'A', 9 - i, newJ + 'A', 9 - newI);
+							string sMove = move;
+							newState.lastMove = move;
 
 							result.push_back(newState);
 						}
@@ -471,7 +575,7 @@ vector<State> Game::getMoves(const State& state) {
 
 void Game::printBoard() {
 	for (int i = 0; i < 9; i++) {
-		cout << i << " ";
+		cout << 9 - i;
 		for (int j = 0; j < 7; j++) {
 			if (boardState.whiteFigures[i][j] != Figure::EMPTY) {
 				cout << (char)boardState.whiteFigures[i][j];
@@ -486,4 +590,6 @@ void Game::printBoard() {
 
 		cout << endl;
 	}
+
+	cout << " ABCDEFG" << endl;
 }

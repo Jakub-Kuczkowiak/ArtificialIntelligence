@@ -7,8 +7,8 @@
 const int TESTS = 1000;
 
 int main() {
-	Player whitePlayer;
-	Player blackPlayer;
+	Player whitePlayer(WHITE);
+	Player blackPlayer(BLACK);
 	RandomBot whiteRandomBot;
 	RandomBot blackRandomBot;
 	Bot whiteBot;
@@ -19,6 +19,7 @@ int main() {
 		Game game;
 
 		game.setPlayers(whitePlayer, blackPlayer);
+		game.printBoard();
 		if (game.play(true, true) == WHITE) {
 			whiteWins++;
 		}

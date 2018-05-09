@@ -50,12 +50,14 @@ public:
 	vector< vector<Figure> > blackFigures;
 	Color color;
 	int noCaptureMoves;
+	string lastMove;
 
 	State(vector< vector<Figure> > whiteFigures, vector< vector<Figure> > blackFigures, Color color, int noCaptureMoves) {
 		this->whiteFigures = whiteFigures;
 		this->blackFigures = blackFigures;
 		this->color = color;
 		this->noCaptureMoves = noCaptureMoves;
+		this->lastMove = "";
 	}
 
 	State() {
@@ -75,6 +77,8 @@ public:
 	virtual State bestMove(const State& state) = 0;
 };
 
+vector<State> getMoves(const State& state);
+
 class Game
 {
 public:
@@ -82,7 +86,6 @@ public:
 	void setPlayers(IPlayer& whitePlayer, IPlayer& blackPlayer);
 	Color play(bool verifyMoves, bool printState);
 	void printBoard();
-	vector<State> getMoves(const State& state);
 	bool isWinner(const State& state, Color& winner);
 
 private:
