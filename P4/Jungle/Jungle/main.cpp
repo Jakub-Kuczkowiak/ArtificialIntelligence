@@ -4,7 +4,7 @@
 #include "randombot.h"
 #include "bot.h"
 
-const int TESTS = 1000;
+const int TESTS = 1;
 
 int main() {
 	Player whitePlayer(WHITE);
@@ -18,7 +18,7 @@ int main() {
 	for (int i = 0; i < TESTS; i++) {
 		Game game;
 
-		game.setPlayers(whitePlayer, blackPlayer);
+		game.setPlayers(whitePlayer, blackRandomBot);
 		game.printBoard();
 		if (game.play(true, true) == WHITE) {
 			whiteWins++;
@@ -26,6 +26,7 @@ int main() {
 		else {
 			blackWins++;
 		}
+		game.printBoard();
 	}
 
 	system("PAUSE");

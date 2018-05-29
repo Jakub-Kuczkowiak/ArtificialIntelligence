@@ -8,7 +8,7 @@ enum Field
 	LAND = '.', // l¹d / ³¹ka
 	TRAP = '#', // pu³apka
 	WHITEDEN = '*', // jama
-	BLACKDEN = '*',
+	BLACKDEN = '@', // czarna jama
 	RIVER = '~' // rzeka
 };
 

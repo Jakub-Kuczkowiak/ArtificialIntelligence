@@ -2,7 +2,7 @@
 #include <queue>
 #include <list>
 
-int w[8][8] = {
+/*int w[8][8] = {
 	{200, -100, 100,  50,  50, 100, -100,  200},
 	{-100, -200, -50, -50, -50, -50, -200, -100 },
 	{100,  -50, 100,   0,   0, 100,  -50,  100},
@@ -11,6 +11,17 @@ int w[8][8] = {
 	{100,  -50, 100,   0,   0, 100,  -50,  100},
 	{-100, -200, -50, -50, -50, -50, -200, -100},
 	{200, -100, 100,  50,  50, 100, -100,  200} 
+};*/
+
+int w[8][8] = {
+	{ 200, -20, 20, 20, 20, 20, -20, 200 },
+	{ -20, 1, 1, 1, 1, 1, 1, -20 },
+	{ 20, 1, 1, 1, 1, 1, 1, 20 },
+	{ 20, 1, 1, 1, 1, 1, 1, 20 },
+	{ 20, 1, 1, 1, 1, 1, 1, 20 },
+	{ 20, 1, 1, 1, 1, 1, 1, 20 },
+	{ -20, 1, 1, 1, 1, 1, 1, -20 },
+	{ 200, -20, 20, 20, 20, 20, -20, 200 }
 };
 
 Bot::Bot(Color color) {
@@ -50,7 +61,7 @@ int Bot::cornersDifference(const State& state) {
 }
 
 int Bot::countWeights(const State& state) {
-	if (state.first[0][0] != EMPTY) {
+	/*if (state.first[0][0] != EMPTY) {
 		w[0][1] = 0;
 		w[0][2] = 0;
 		w[0][3] = 0;
@@ -108,7 +119,7 @@ int Bot::countWeights(const State& state) {
 		w[7][4] = 0;
 		w[7][5] = 0;
 		w[7][6] = 0;
-	}
+	}*/
 
 	int sum = 0;
 	for (int i = 0; i < WIDTH; i++) {
@@ -142,7 +153,9 @@ int Bot::heuro(const State& state) {
 		}
 	}
 
-	int weightsSum = countWeights(state);
+	return countWeights(state);
+
+	/*int weightsSum = countWeights(state);
 	int cornersSum = cornersDifference(state);
 
 	int count = countWhite + countBlack;
@@ -157,7 +170,7 @@ int Bot::heuro(const State& state) {
 	}
 	else { // end game
 		return weightsSum;
-	}
+	}*/
 }
 
 pair<bool, Color> Bot::isWinner(State& boardState, Color colorToMove) {

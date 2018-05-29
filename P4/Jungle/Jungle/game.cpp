@@ -161,6 +161,9 @@ bool Game::isWinner(const State& state, Color& winner) {
 	return false;
 }
 
+#include <Windows.h>
+#include <string>
+
 Color Game::play(bool verifyMoves, bool printState)
 {
 	if (whitePlayer == nullptr || blackPlayer == nullptr) {
@@ -196,6 +199,11 @@ Color Game::play(bool verifyMoves, bool printState)
 		boardState = newState;
 		
 		if (printState) printBoard();
+		cout << "move: " << newState.lastMove << endl;
+		cout << "moves without capture: " << boardState.noCaptureMoves << endl;
+		//int t = 0;
+		//cin >> t;
+
 
 		Color colWinner;
 		if (isWinner(boardState, colWinner)) {
@@ -391,7 +399,7 @@ vector<State> getMoves(const State& state) {
 					if (Board[newI][newJ] != myDen && Board[newI][newJ] != Field::RIVER) { // we check if it is our DEN or WATER
 						if (Board[newI][newJ] == Field::TRAP ||
 							getFigureStrength(myFigures[i][j]) >= getFigureStrength(enemyFigures[newI][newJ])) { // here we know that we can capture this field
-
+							
 							State newState = state;
 							newState.color = (state.color == WHITE ? BLACK : WHITE);
 							if (enemyFigures[newI][newJ] != Figure::EMPTY) newState.noCaptureMoves = 0;
@@ -436,7 +444,7 @@ vector<State> getMoves(const State& state) {
 
 								newI += iDiff;
 								newJ += jDiff;
-							} while (Board[newI][newJ] != Field::RIVER);
+							} while (Board[newI][newJ] == Field::RIVER);
 						}
 
 						// we cannot capture our own figure
@@ -489,7 +497,7 @@ vector<State> getMoves(const State& state) {
 
 								newI += iDiff;
 								newJ += jDiff;
-							} while (Board[newI][newJ] != Field::RIVER);
+							} while (Board[newI][newJ] == Field::RIVER);
 						}
 
 						// we cannot capture our own figure
@@ -578,7 +586,7 @@ void Game::printBoard() {
 		cout << 9 - i;
 		for (int j = 0; j < 7; j++) {
 			if (boardState.whiteFigures[i][j] != Figure::EMPTY) {
-				cout << (char)boardState.whiteFigures[i][j];
+				cout << (char)tolower((char)boardState.whiteFigures[i][j]);
 			}
 			else if (boardState.blackFigures[i][j] != Figure::EMPTY) {
 				cout << (char)boardState.blackFigures[i][j];
@@ -591,5 +599,5 @@ void Game::printBoard() {
 		cout << endl;
 	}
 
-	cout << " ABCDEFG" << endl;
+	cout << " ABCDEFG" << endl << endl;
 }
