@@ -15,12 +15,12 @@ int MiniMaxBot::heuro(const State& state) { // heuristic counted from perspectiv
 			if (myFigures[i][j] != Figure::EMPTY) {
 				int distance = abs(i - enemyDenI) + abs(j - enemyDenJ);
 				int value = getFigureStrength(myFigures[i][j]);
-				heuro += (distance * value);
+				heuro -= (distance * value);
 			}
 			else if (enemyFigures[i][j] != Figure::EMPTY) {
 				int distance = abs(i - myDenI) + abs(j - myDenJ);
 				int value = getFigureStrength(enemyFigures[i][j]);
-				heuro -= (distance * value);
+				heuro += (distance * value);
 			}
 		}
 	}
@@ -28,18 +28,44 @@ int MiniMaxBot::heuro(const State& state) { // heuristic counted from perspectiv
 	return heuro;
 }
 
+pair<int, State> MiniMaxBot::minimax(State state, int depth, int maxDepth, int alpha, int beta) {
+	// base case: leaf, when game is finished
+	Color col;
+	auto isWin = isWinner(state, col);
+	if (isWin) {
+		return pair<int, State>(maxHeuristic, state);
+	}
+
+	if (depth == maxDepth) { // base case of depth
+		return pair<int, State>(heuro(state), state);
+	}
+
+	vector<State > states = getMoves(state);
+	/*if (states.size() == 0) {
+		state.second = (state.second == COL_WHITE ? COL_BLACK : COL_WHITE);
+		return minimax(state, depth + 1, maxDepth, alpha, beta);
+	}*/
+
+	// we always maximize now
+	int max = alpha; // instead of minHeuristic
+	State& maxState = states[0];
+
+	for (auto st : states) {
+		pair<int, State> result = minimax(st, depth + 1, maxDepth, max, beta);
+		if (result.first > max) {
+			max = result.first;
+			maxState = st;
+		}
+
+		if (max >= beta)	// beta cut off
+			return pair<int, State>(max, maxState);
+	}
+
+	return pair<int, State>(max, maxState);
+}
+
 State MiniMaxBot::bestMove(const State& state) {
 	vector<State> states = getMoves(state);
 
-	// we always want to maximize as heuristic is player-side-oriented
-	int maxHeuro = -1, maxStateIndex = -1;
-	for (int i = 0; i < states.size(); i++) { // for each available state play some random games number
-		int val = heuro(states[i]);
-		if (val > maxHeuro) {
-			maxHeuro = val;
-			maxStateIndex = i;
-		}
-	}
-
-	return states[maxStateIndex];
+	return minimax(state, 0, maxDepth, minHeuristic, maxHeuristic).second;
 }

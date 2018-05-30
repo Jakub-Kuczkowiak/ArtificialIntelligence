@@ -14,14 +14,14 @@ int main() {
 	RandomBot blackRandomBot;
 	MonteCarloBot whiteMonteCarloBot(1);
 	MonteCarloBot blackMonteCarloBot(5);
-	MiniMaxBot whiteMiniMaxBot;
-	MiniMaxBot blackMiniMaxBot;
+	MiniMaxBot whiteMiniMaxBot(3);
+	MiniMaxBot blackMiniMaxBot(5);
 
 	int whiteWins = 0, blackWins = 0;
 	for (int i = 0; i < TESTS; i++) {
 		Game game;
 
-		game.setPlayers(whiteMiniMaxBot, blackMonteCarloBot);
+		game.setPlayers(whiteMiniMaxBot, blackMiniMaxBot);
 		//game.printBoard();
 		if (game.play(true, true) == WHITE) {
 			whiteWins++;
