@@ -2,31 +2,37 @@
 #include "game.h"
 #include "player.h"
 #include "randombot.h"
-#include "bot.h"
+#include "montecarlobot.h"
+#include "minimaxbot.h"
 
-const int TESTS = 1;
+const int TESTS = 10;
 
 int main() {
 	Player whitePlayer(WHITE);
 	Player blackPlayer(BLACK);
 	RandomBot whiteRandomBot;
 	RandomBot blackRandomBot;
-	Bot whiteBot;
-	Bot blackBot;
+	MonteCarloBot whiteMonteCarloBot(1);
+	MonteCarloBot blackMonteCarloBot(5);
+	MiniMaxBot whiteMiniMaxBot;
+	MiniMaxBot blackMiniMaxBot;
 
 	int whiteWins = 0, blackWins = 0;
 	for (int i = 0; i < TESTS; i++) {
 		Game game;
 
-		game.setPlayers(whitePlayer, blackRandomBot);
-		game.printBoard();
+		game.setPlayers(whiteMiniMaxBot, blackMonteCarloBot);
+		//game.printBoard();
 		if (game.play(true, true) == WHITE) {
 			whiteWins++;
 		}
 		else {
 			blackWins++;
 		}
-		game.printBoard();
+
+		cout << "Result is: WHITE " << whiteWins << ", BLACK " << blackWins << endl;
+
+		//game.printBoard();
 	}
 
 	system("PAUSE");

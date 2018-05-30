@@ -77,7 +77,10 @@ public:
 	virtual State bestMove(const State& state) = 0;
 };
 
+const int MAX_MOVES_WITHOUT_CAPTURE = 50;
+int getFigureStrength(Figure figure);
 vector<State> getMoves(const State& state);
+bool isWinner(const State& state, Color& winner);
 
 class Game
 {
@@ -86,13 +89,10 @@ public:
 	void setPlayers(IPlayer& whitePlayer, IPlayer& blackPlayer);
 	Color play(bool verifyMoves, bool printState);
 	void printBoard();
-	bool isWinner(const State& state, Color& winner);
 
 private:
 	IPlayer* whitePlayer;
 	IPlayer* blackPlayer;
 
 	State boardState;
-
-	const int MAX_MOVES_WITHOUT_CAPTURE = 50;
 };

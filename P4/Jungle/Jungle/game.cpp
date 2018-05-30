@@ -26,7 +26,6 @@ int getFigureStrength(Figure figure) {
 	}
 }
 
-// ONE SHOULD BE INCREASING ONE DECREASING!
 struct figure_sort
 {
 	inline bool operator() (const pair<Figure, int>& figure1, const pair<Figure, int>& figure2)
@@ -78,7 +77,7 @@ void Game::setPlayers(IPlayer& whitePlayer, IPlayer& blackPlayer) {
 	this->blackPlayer = &blackPlayer;
 }
 
-bool Game::isWinner(const State& state, Color& winner) {
+bool isWinner(const State& state, Color& winner) {
 	if (state.color == WHITE) {
 		// then last move was done by black, so we check if black won.
 		if (state.blackFigures[7][3] != Figure::EMPTY) {
@@ -92,6 +91,11 @@ bool Game::isWinner(const State& state, Color& winner) {
 			winner = WHITE;
 			return true;
 		}
+	}
+
+	if (getMoves(state).size() == 0) { // if there are no moves to do, then we lost since we are 'patted'
+		winner = (state.color == Color::BLACK ? WHITE : BLACK);
+		return true;
 	}
 
 	if (state.noCaptureMoves == MAX_MOVES_WITHOUT_CAPTURE) {
@@ -198,9 +202,11 @@ Color Game::play(bool verifyMoves, bool printState)
 
 		boardState = newState;
 		
-		if (printState) printBoard();
-		cout << "move: " << newState.lastMove << endl;
-		cout << "moves without capture: " << boardState.noCaptureMoves << endl;
+		if (printState) {
+			printBoard();
+			cout << "move: " << newState.lastMove << endl;
+			cout << "moves without capture: " << boardState.noCaptureMoves << endl;
+		}
 		//int t = 0;
 		//cin >> t;
 

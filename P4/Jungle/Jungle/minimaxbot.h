@@ -2,8 +2,11 @@
 
 #include "game.h"
 
-class Bot : public IPlayer
+class MiniMaxBot : public IPlayer
 {
 public:
 	State bestMove(const State& state);
+
+private:
+	int heuro(const State& state);
 };
